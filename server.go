@@ -6,9 +6,16 @@ import (
 
 	"github.com/takahawk/shadownet/encryptors"
 	"github.com/takahawk/shadownet/storages"
+	"github.com/takahawk/shadownet/transformers"
 )
 
 func gateway(w http.ResponseWriter, req *http.Request) {
+	downloader := storages.NewPastebinDownloader()
+	content, err := downloader.Download("yHWR5RQr")
+	if err != nil {
+		fmt.Fprintf(w, fmt.Sprintf("%+v", err))
+	}
+	
 	fmt.Fprintf(w, content)
 }
 
@@ -19,26 +26,33 @@ func main() {
 	if err != nil {
 		fmt.Printf("%+v", err)
 	}
+	transformer := transformers.NewBase64Transformer()
 	
 	cipher, err := encryptor.Encrypt([]byte(testtext))
 	fmt.Printf("Source text: %s\n", testtext)
 	if err != nil {
 		fmt.Printf("%+v", err)
 	}
-	fmt.Printf("Encrypted text: %s\n", string(cipher))
-
-	decrypted, err := encryptor.Decrypt(cipher)
+	fmt.Printf("Before base (len=%d): %s\n", len(cipher), cipher)
+	cipher, err = transformer.ForwardTransform(cipher)
 	if err != nil {
 		fmt.Printf("%+v", err)
 	}
-	fmt.Printf("Decrypted text: %s\n", string(decrypted))
+	fmt.Printf("Encrypted text (len=%d): %s\n",  len(cipher), string(cipher))
 
-	downloader := storages.NewPastebinDownloader()
-	content, err := downloader.Download("yHWR5RQr")
+	decrypted, err := transformer.ReverseTransform(cipher)
 	if err != nil {
-		fmt.Fprintf(w, fmt.Sprintf("%+v", err))
+		fmt.Printf("%+v", err)
+	}
+	fmt.Printf("Unbase (len=%d): %s\n", len(decrypted), decrypted)
+	decrypted, err = encryptor.Decrypt(decrypted)
+	if err != nil {
+		fmt.Printf("%+v", err)
 	}
 	
+	fmt.Printf("Decrypted text: %s\n", string(decrypted))
+
+
 	port := 1337
 	http.HandleFunc("/", gateway)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)

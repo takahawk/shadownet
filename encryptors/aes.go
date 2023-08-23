@@ -21,8 +21,7 @@ func NewAESEncryptor(key []byte, iv []byte) (Encryptor, error) {
 	if len(iv) != 16 {
 		return nil, errors.New("initialization vector should be 16 bytes")
 	}
-	// FIXME: check for key length (32 byte)
-	// TODO: mb make key part of interface instead of storing it as fields?
+	
 	return &aesEncryptor {
 		key: key,
 		iv: iv,
@@ -30,8 +29,6 @@ func NewAESEncryptor(key []byte, iv []byte) (Encryptor, error) {
 }
 
 func (ae *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
-	// FIXME: it encrypts only one block
-	
 	block, err := aes.NewCipher(ae.key)
 
 	if err != nil {
