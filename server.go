@@ -26,7 +26,8 @@ func main() {
 
 	transformer, _ := resolvers.NewBuiltinTransformerResolver().ResolveTransformer("base64")
 	
-	cipher, err := encryptor.Encrypt([]byte(testtext))
+	key := append([]byte("thereisnospoonthereisnospoonther"), []byte("abcdefghabcdefgh")...)
+	cipher, err := encryptor.Encrypt(key, []byte(testtext))
 	fmt.Printf("Source text: %s\n", testtext)
 	if err != nil {
 		fmt.Printf("%+v", err)
@@ -43,7 +44,7 @@ func main() {
 		fmt.Printf("%+v", err)
 	}
 	fmt.Printf("Unbase (len=%d): %s\n", len(decrypted), decrypted)
-	decrypted, err = encryptor.Decrypt(decrypted)
+	decrypted, err = encryptor.Decrypt(key, decrypted)
 	if err != nil {
 		fmt.Printf("%+v", err)
 	}

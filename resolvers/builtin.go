@@ -36,11 +36,10 @@ func NewBuiltinTransformerResolver() TransformerResolver {
 }
 
 func NewBuiltinEncryptorResolver() EncryptorResolver {
-	aesEncryptor, _ := encryptors.NewAESEncryptor([]byte("thereisnospoonthereisnospoonther"), []byte("abcdefghabcdefgh"))
 	return &builtinEncryptorResolver{
 		dict: map[string] encryptors.Encryptor {
 			// TODO: move key and iv to interface from constructor
-			"aes": aesEncryptor,
+			"aes": encryptors.NewAESEncryptor(),
 		},
 	}
 }

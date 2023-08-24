@@ -13,23 +13,19 @@ type aesEncryptor struct {
 	iv []byte
 }
 
-func NewAESEncryptor(key []byte, iv []byte) (Encryptor, error) {
-	if len(key) != 32 {
-		return nil, errors.New("key length should be 32 bytes")
-	}
-
-	if len(iv) != 16 {
-		return nil, errors.New("initialization vector should be 16 bytes")
-	}
-	
-	return &aesEncryptor {
-		key: key,
-		iv: iv,
-	}, nil
+func NewAESEncryptor() Encryptor {
+	return &aesEncryptor {}
 }
 
-func (ae *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
-	block, err := aes.NewCipher(ae.key)
+// The key should be 48 bytes.
+// First 32 bytes in key are actual key, the last 16 bytes are initialization vector
+func (ae *aesEncryptor) Encrypt(key []byte, data []byte) ([]byte, error) {
+	if len(key) != 48 {
+		return nil, errors.New("key length should be 48 bytes (32 - key itself, then 16 - initialization vector)")
+	}
+	iv := key[32:]
+	key = key[:32]
+	block, err := aes.NewCipher(key)
 
 	if err != nil {
 		return nil, err
@@ -41,22 +37,29 @@ func (ae *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
 	data = append(data, padbytes...)
 
 	encrypted := make([]byte, len(data))
-	mode := cipher.NewCBCEncrypter(block, ae.iv)
+	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(encrypted, data)
 
 
 	return encrypted, nil
 }
 
-func (ae *aesEncryptor) Decrypt(data []byte) ([]byte, error) {
-	block, err := aes.NewCipher(ae.key)
+// The key should be 48 bytes.
+// First 32 bytes in key are actual key, the last 16 bytes are initialization vector
+func (ae *aesEncryptor) Decrypt(key []byte, data []byte) ([]byte, error) {
+	if len(key) != 48 {
+		return nil, errors.New("key length should be 48 bytes (32 - key itself, then 16 - initialization vector)")
+	}
+	iv := key[32:]
+	key = key[:32]
+	block, err := aes.NewCipher(key)
 
 	if err != nil {
 		return nil, err
 	}
 
 	decrypted := make([]byte, len(data))
-	mode := cipher.NewCBCDecrypter(block, ae.iv)
+	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(decrypted, data)
 	// unpadding
 	unpadding := int(decrypted[len(decrypted) - 1])
