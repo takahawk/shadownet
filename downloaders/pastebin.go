@@ -11,9 +11,6 @@ const PastebinRawPrefix = "https://pastebin.com/raw"
 const PastebinPostUrl = "https://pastebin.com/api/api_post.php"
 
 type pastebinDownloader struct {}
-type pastebinUploader struct {
-	// TODO: add option to use authorized API instance
-}
 
 func NewPastebinDownloader() Downloader {
 	return &pastebinDownloader{}
@@ -33,13 +30,4 @@ func (pd *pastebinDownloader) Download(id string) (string, error) {
 	}
 
 	return string(content), nil
-}
-
-func NewPastebinUploader() Uploader {
-	return &pastebinUploader{}
-}
-
-func (pd *pastebinUploader) Upload(id string, content string) error {
-	// TODO: implement
-	return errors.New("Unimplemented")
 }
