@@ -5,18 +5,29 @@ import (
 	"fmt"
 
 	"github.com/takahawk/shadownet/downloaders"
-	"github.com/takahawk/shadownet/transformers"
 	"github.com/takahawk/shadownet/encryptors"
+	"github.com/takahawk/shadownet/transformers"
+	"github.com/takahawk/shadownet/uploaders"
 )
 
 type builtinDownloaderResolver struct {
 	dict map[string] downloaders.Downloader
 }
+
 type builtinTransformerResolver struct {
 	dict map[string] transformers.Transformer
 }
+
 type builtinEncryptorResolver struct {
 	dict map[string] encryptors.Encryptor
+}
+
+type builtinUploaderResolver struct {
+	dict map[string] func(params interface{}) (uploaders.Uploader, error)
+}
+
+type PastebinUploaderParams struct {
+	devKey string
 }
 
 func NewBuiltinDownloaderResolver() DownloaderResolver {
@@ -44,6 +55,22 @@ func NewBuiltinEncryptorResolver() EncryptorResolver {
 	}
 }
 
+func NewBuiltinUploaderResolver() UploaderResolver {
+	return &builtinUploaderResolver{
+		dict: map[string] func(params interface{}) (uploaders.Uploader, error) {
+			// TODO: move key and iv to interface from constructor
+			"pastebin": func(params interface{}) (uploaders.Uploader, error) {
+				switch p := params.(type) {
+				case PastebinUploaderParams:
+					return uploaders.NewPastebinUploader(p.devKey), nil
+				default:
+					return nil, errors.New(fmt.Sprintf("unknown param type %T. should be PastebinUploaderParams", p))
+				}
+			},
+		},
+	}
+}
+
 func (bdr *builtinDownloaderResolver) ResolveDownloader(id string) (downloaders.Downloader, error) {
 	if downloader, ok := bdr.dict[id]; ok {
 		return downloader, nil
@@ -66,4 +93,12 @@ func (ber *builtinEncryptorResolver) ResolveEncryptor(id string) (encryptors.Enc
 	}
 
 	return nil, errors. New(fmt.Sprintf("there is no built-in encryptor with ID %s", id))
+}
+
+func (bur *builtinUploaderResolver) ResolveUploader(id string) (func(params interface{}) (uploaders.Uploader, error), error) {
+	if uploader, ok := bur.dict[id]; ok {
+		return uploader, nil
+	}
+
+	return nil, errors. New(fmt.Sprintf("there is no built-in uploader with ID %s", id))
 }
