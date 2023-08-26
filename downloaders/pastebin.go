@@ -10,14 +10,14 @@ const PastebinRawPrefix = "https://pastebin.com/raw"
 const PastebinPostUrl = "https://pastebin.com/api/api_post.php"
 
 type pastebinDownloader struct {}
-const DownloaderName = "pastebin"
+const PastebinDownloaderName = "pastebin"
 
 func NewPastebinDownloader() Downloader {
 	return &pastebinDownloader{}
 }
 
 func (pd *pastebinDownloader) Name() string {
-	return DownloaderName
+	return PastebinDownloaderName
 }
 
 func (pd *pastebinDownloader) Download(id string) (string, error) {

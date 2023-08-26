@@ -5,14 +5,14 @@ import (
 )
 
 type base64Transformer struct {}
-const TransformerName = "base64"
+const Base64TransformerName = "base64"
 
 func NewBase64Transformer() Transformer {
 	return &base64Transformer{}
 }
 
 func (b64t *base64Transformer) Name() string {
-	return TransformerName
+	return Base64TransformerName
 }
 
 func (b64t *base64Transformer) ForwardTransform(data []byte) ([]byte, error) {

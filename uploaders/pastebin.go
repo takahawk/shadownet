@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const UploaderName = "pastebin"
+const PastebinUploaderName = "pastebin"
 
 const MaximumPastebinExpireTime = "1Y"
 const PastebinUploadApiOption = "paste"
@@ -38,8 +38,17 @@ func NewPastebinUploader(apiKey string) Uploader {
 	}
 }
 
+func NewPastebinUploaderWithParams(params... string) (Uploader, error) {
+	if len(params) != 1 {
+		return nil, errors.New("there should be 1 parameters: pastebin developer key")
+	}
+	apiKey := params[0]
+
+	return &pastebinUploader{apiKey}, nil
+}
+
 func (pu *pastebinUploader) Name() string {
-	return UploaderName
+	return PastebinUploaderName
 }
 
 func (pu *pastebinUploader) Upload(content []byte) (id string, err error) {

@@ -6,6 +6,6 @@ import (
 
 type Encryptor interface {
 	common.Nameable
-	Encrypt(key []byte, data []byte) ([]byte, error)
-	Decrypt(key []byte, cipher []byte) ([]byte, error)
+	Encrypt(data []byte) ([]byte, error)
+	Decrypt(cipher []byte) ([]byte, error)
 }

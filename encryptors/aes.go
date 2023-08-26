@@ -13,25 +13,37 @@ type aesEncryptor struct {
 	iv []byte
 }
 
-const EncryptorName = "aes"
+const AESEncryptorName = "aes"
 
-func NewAESEncryptor() Encryptor {
-	return &aesEncryptor {}
+func NewAESEncryptor(key []byte, iv []byte) (Encryptor, error) {
+	if len(key) != 32 {
+		return nil, errors.New("key length should be 32 bytes")
+	}
+	if len(iv) != 16 {
+		return nil, errors.New("key length should be 16 bytes")
+	}
+	return &aesEncryptor {
+		key: key,
+		iv: iv,
+	}, nil
+}
+
+func NewAESEncryptorWithParams(params... string) (Encryptor, error) {
+	if len(params) != 2 {
+		return nil, errors.New("there should be 2 parameters: key and iv")
+	}
+	key := []byte(params[0])
+	iv := []byte(params[1])
+
+	return NewAESEncryptor(key, iv)
 }
 
 func (ae *aesEncryptor) Name() string {
-	return EncryptorName
+	return AESEncryptorName
 }
 
-// The key should be 48 bytes.
-// First 32 bytes in key are actual key, the last 16 bytes are initialization vector
-func (ae *aesEncryptor) Encrypt(key []byte, data []byte) ([]byte, error) {
-	if len(key) != 48 {
-		return nil, errors.New("key length should be 48 bytes (32 - key itself, then 16 - initialization vector)")
-	}
-	iv := key[32:]
-	key = key[:32]
-	block, err := aes.NewCipher(key)
+func (ae *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
+	block, err := aes.NewCipher(ae.key)
 
 	if err != nil {
 		return nil, err
@@ -43,7 +55,7 @@ func (ae *aesEncryptor) Encrypt(key []byte, data []byte) ([]byte, error) {
 	data = append(data, padbytes...)
 
 	encrypted := make([]byte, len(data))
-	mode := cipher.NewCBCEncrypter(block, iv)
+	mode := cipher.NewCBCEncrypter(block, ae.iv)
 	mode.CryptBlocks(encrypted, data)
 
 
@@ -52,20 +64,15 @@ func (ae *aesEncryptor) Encrypt(key []byte, data []byte) ([]byte, error) {
 
 // The key should be 48 bytes.
 // First 32 bytes in key are actual key, the last 16 bytes are initialization vector
-func (ae *aesEncryptor) Decrypt(key []byte, data []byte) ([]byte, error) {
-	if len(key) != 48 {
-		return nil, errors.New("key length should be 48 bytes (32 - key itself, then 16 - initialization vector)")
-	}
-	iv := key[32:]
-	key = key[:32]
-	block, err := aes.NewCipher(key)
+func (ae *aesEncryptor) Decrypt(data []byte) ([]byte, error) {
+	block, err := aes.NewCipher(ae.key)
 
 	if err != nil {
 		return nil, err
 	}
 
 	decrypted := make([]byte, len(data))
-	mode := cipher.NewCBCDecrypter(block, iv)
+	mode := cipher.NewCBCDecrypter(block, ae.iv)
 	mode.CryptBlocks(decrypted, data)
 	// unpadding
 	unpadding := int(decrypted[len(decrypted) - 1])
