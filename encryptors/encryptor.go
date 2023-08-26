@@ -1,7 +1,11 @@
 package encryptors
 
+import (
+	"github.com/takahawk/shadownet/common"
+)
+
 type Encryptor interface {
-	// TODO: change type to more general byte arrays
+	common.Nameable
 	Encrypt(key []byte, data []byte) ([]byte, error)
 	Decrypt(key []byte, cipher []byte) ([]byte, error)
 }

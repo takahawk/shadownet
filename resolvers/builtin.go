@@ -31,26 +31,29 @@ type PastebinUploaderParams struct {
 }
 
 func NewBuiltinDownloaderResolver() DownloaderResolver {
+	pastebinDownloader := downloaders.NewPastebinDownloader()
 	return &builtinDownloaderResolver{
 		dict: map[string] downloaders.Downloader {
-			"pastebin": downloaders.NewPastebinDownloader(),
+			pastebinDownloader.Name(): pastebinDownloader,
 		},
 	}
 }
 
 func NewBuiltinTransformerResolver() TransformerResolver {
+	base64Transformer := transformers.NewBase64Transformer()
 	return &builtinTransformerResolver{
 		dict: map[string] transformers.Transformer {
-			"base64": transformers.NewBase64Transformer(),
+			base64Transformer.Name(): base64Transformer,
 		},
 	}
 }
 
 func NewBuiltinEncryptorResolver() EncryptorResolver {
+	aesEncryptor := encryptors.NewAESEncryptor()
 	return &builtinEncryptorResolver{
 		dict: map[string] encryptors.Encryptor {
 			// TODO: move key and iv to interface from constructor
-			"aes": encryptors.NewAESEncryptor(),
+			aesEncryptor.Name(): aesEncryptor,
 		},
 	}
 }
@@ -59,7 +62,7 @@ func NewBuiltinUploaderResolver() UploaderResolver {
 	return &builtinUploaderResolver{
 		dict: map[string] func(params interface{}) (uploaders.Uploader, error) {
 			// TODO: move key and iv to interface from constructor
-			"pastebin": func(params interface{}) (uploaders.Uploader, error) {
+			uploaders.NewPastebinUploader("").Name(): func(params interface{}) (uploaders.Uploader, error) {
 				switch p := params.(type) {
 				case PastebinUploaderParams:
 					return uploaders.NewPastebinUploader(p.devKey), nil

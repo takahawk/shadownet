@@ -13,8 +13,14 @@ type aesEncryptor struct {
 	iv []byte
 }
 
+const EncryptorName = "aes"
+
 func NewAESEncryptor() Encryptor {
 	return &aesEncryptor {}
+}
+
+func (ae *aesEncryptor) Name() string {
+	return EncryptorName
 }
 
 // The key should be 48 bytes.
