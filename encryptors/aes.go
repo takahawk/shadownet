@@ -42,6 +42,10 @@ func (ae *aesEncryptor) Name() string {
 	return AESEncryptorName
 }
 
+func (ae *aesEncryptor) Params() [][]byte {
+	return [][]byte{ ae.key, ae.iv }
+}
+
 func (ae *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(ae.key)
 

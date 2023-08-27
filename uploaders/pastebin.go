@@ -51,6 +51,11 @@ func (pu *pastebinUploader) Name() string {
 	return PastebinUploaderName
 }
 
+
+func (pu *pastebinUploader) Params() [][]byte {
+	return [][]byte{ []byte(pu.apiKey) }
+}
+
 func (pu *pastebinUploader) Upload(content []byte) (id string, err error) {
 	// TODO: should check if this is possible to upload binary data
 	// TODO: implement

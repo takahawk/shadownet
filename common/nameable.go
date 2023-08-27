@@ -1,5 +1,6 @@
 package common
 
-type Nameable interface {
+type Component interface {
 	Name() string
+	Params() [][]byte
 }

@@ -32,6 +32,10 @@ func (pd *pastebinDownloader) Name() string {
 	return PastebinDownloaderName
 }
 
+func (pd *pastebinDownloader) Params() [][]byte {
+	return [][]byte{ []byte(pd.pasteID) }
+}
+
 func (pd *pastebinDownloader) Download() (string, error) {
 	res, err := http.Get(fmt.Sprintf("%s/%s", PastebinRawPrefix, pd.pasteID))
 	if err != nil {

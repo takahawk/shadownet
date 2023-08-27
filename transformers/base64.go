@@ -15,6 +15,10 @@ func (b64t *base64Transformer) Name() string {
 	return Base64TransformerName
 }
 
+func (b64t *base64Transformer) Params() [][]byte {
+	return nil
+}
+
 func (b64t *base64Transformer) ForwardTransform(data []byte) ([]byte, error) {
 	encoded := make([]byte, base64.StdEncoding.EncodedLen(len(data)))
 	base64.StdEncoding.Encode(encoded, data)

@@ -6,7 +6,7 @@ import (
 
 // TODO: mb, should be removed because signatures are the same for Transformer interface?
 type Encryptor interface {
-	common.Nameable
+	common.Component
 	Encrypt(data []byte) ([]byte, error)
 	Decrypt(cipher []byte) ([]byte, error)
 }

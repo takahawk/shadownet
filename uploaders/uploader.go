@@ -6,7 +6,7 @@ import (
 
 
 type Uploader interface {
-	common.Nameable
+	common.Component
 	// TODO: mb add some generic `params` to gain more control on specific upload?
 	Upload(content []byte) (id string, err error)
 }

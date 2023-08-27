@@ -42,17 +42,10 @@ func main() {
 	data := []byte("<html><body><b>Bold text</b><br><i>Italic text</i><br>Plain text</body></html")
 	pipeline := pipelines.NewUploadPipeline()
 	encryptor, _ := encryptors.NewAESEncryptor([]byte("thereisnospoonthereisnospoonther"), []byte("abcdefghabcdefgh"))
-	err := pipeline.AddStep(encryptor, []byte("thereisnospoonthereisnospoonther"), []byte("abcdefghabcdefgh"))
-	if err != nil {
-		fmt.Printf("Error: %+v", err)
-		os.Exit(-1)
-	}
-	err = pipeline.AddStep(transformers.NewBase64Transformer())
-	if err != nil {
-		fmt.Printf("Error: %+v", err)
-		os.Exit(-1)
-	}
-	err = pipeline.AddStep(uploaders.NewPastebinUploader(""))
+	err := pipeline.AddSteps(
+		encryptor, 
+		transformers.NewBase64Transformer(), 
+		uploaders.NewPastebinUploader(""))
 	if err != nil {
 		fmt.Printf("Error: %+v", err)
 		os.Exit(-1)

@@ -5,6 +5,6 @@ import (
 )
 
 type Downloader interface {
-	common.Nameable
+	common.Component
 	Download() (string, error)
 }

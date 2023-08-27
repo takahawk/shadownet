@@ -12,31 +12,33 @@ import (
 	"github.com/takahawk/shadownet/encryptors"
 )
 
-// TODO: mb make public?
-type step struct {
-	nameable common.Nameable
-	// TODO: mb move params to nameable itself?
-	params [][]byte
-}
 type uploadPipeline struct {
 	finalized bool
-	steps []step
+	steps []common.Component
 }
 
 func NewUploadPipeline() UploadPipeline {
 	return &uploadPipeline{}
 }
 
-func (up *uploadPipeline) AddStep(nameable common.Nameable, params... []byte) error {
+func (up *uploadPipeline) AddSteps(components... common.Component) error {
 	// there can be only one uploader and it will always be the last one
 	if up.finalized {
 		return errors.New("can't add another step. There is already an uploader")
 	}
 
-	up.steps = append(up.steps, step{ nameable: nameable, params: params })
-	if _, ok := nameable.(uploaders.Uploader); ok {
-		up.finalized = true
+	for i, component := range components {
+		if _, ok := component.(uploaders.Uploader); ok {
+			if i != len(components) - 1 {
+				return errors.New("uploader can be only the last step")
+			} else {
+				up.finalized = true
+			}
+		}
 	}
+	
+
+	up.steps = append(up.steps, components...)
 
 	return nil
 }
@@ -49,22 +51,24 @@ func (up *uploadPipeline) Upload(data []byte) (url string, err error) {
 
 	var urlParts []string
 	for _, step := range up.steps {
-		switch nameable := step.nameable.(type) {
+		switch step := step.(type) {
 		case encryptors.Encryptor:
-			data, err = nameable.Encrypt(data)
+			data, err = step.Encrypt(data)
+			urlParts = append(urlParts, getURLPart(step, step.Params()...))
 		case transformers.Transformer:
-			data, err = nameable.ForwardTransform(data)
+			data, err = step.ForwardTransform(data)
+			urlParts = append(urlParts, getURLPart(step, step.Params()...))
 		case uploaders.Uploader:
 			var id string
-			id, err = nameable.Upload(data)
-			step.params = [][]byte{[]byte(id)}
+			id, err = step.Upload(data)
+			urlParts = append(urlParts, getURLPart(step, []byte(id)))
 		}
 
 		if err != nil {
 			return "", err
 		}
 
-		urlParts = append(urlParts, getURLPart(step.nameable, step.params...))
+		
 	}
 
 	var sb strings.Builder
@@ -79,10 +83,10 @@ func (up *uploadPipeline) Upload(data []byte) (url string, err error) {
 }
 
 // [Type]_[ID]:[Base64dCommaSeparatedParameters]
-func getURLPart(nameable common.Nameable, params... []byte) string {
+func getURLPart(component common.Component, params... []byte) string {
 	var sb strings.Builder
 
-	switch nameable.(type) {
+	switch component.(type) {
 	case encryptors.Encryptor:
 		sb.WriteString(EncryptorURLPrefix)
 	case transformers.Transformer:
@@ -91,7 +95,7 @@ func getURLPart(nameable common.Nameable, params... []byte) string {
 		sb.WriteString(DownloaderURLPrefix)
 	}
 	sb.WriteString("_")
-	sb.WriteString(nameable.Name())
+	sb.WriteString(component.Name())
 	sb.WriteString(":")
 	for _, param := range params {
 		sb.WriteString(base64.StdEncoding.EncodeToString(param))

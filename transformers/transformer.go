@@ -5,7 +5,7 @@ import (
 )
 
 type Transformer interface {
-	common.Nameable
+	common.Component
 	ForwardTransform(data []byte) ([]byte, error)
 	ReverseTransform(data []byte) ([]byte, error)
 }
