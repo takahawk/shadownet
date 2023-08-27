@@ -6,5 +6,5 @@ import (
 
 type Downloader interface {
 	common.Nameable
-	Download(id string) (string, error)
+	Download() (string, error)
 }

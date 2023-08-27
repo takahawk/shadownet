@@ -28,12 +28,12 @@ func NewAESEncryptor(key []byte, iv []byte) (Encryptor, error) {
 	}, nil
 }
 
-func NewAESEncryptorWithParams(params... string) (Encryptor, error) {
+func NewAESEncryptorWithParams(params... []byte) (Encryptor, error) {
 	if len(params) != 2 {
 		return nil, errors.New("there should be 2 parameters: key and iv")
 	}
-	key := []byte(params[0])
-	iv := []byte(params[1])
+	key := params[0]
+	iv := params[1]
 
 	return NewAESEncryptor(key, iv)
 }

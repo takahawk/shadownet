@@ -38,11 +38,11 @@ func NewPastebinUploader(apiKey string) Uploader {
 	}
 }
 
-func NewPastebinUploaderWithParams(params... string) (Uploader, error) {
+func NewPastebinUploaderWithParams(params... []byte) (Uploader, error) {
 	if len(params) != 1 {
 		return nil, errors.New("there should be 1 parameters: pastebin developer key")
 	}
-	apiKey := params[0]
+	apiKey := string(params[0])
 
 	return &pastebinUploader{apiKey}, nil
 }

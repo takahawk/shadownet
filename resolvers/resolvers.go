@@ -12,10 +12,10 @@ type Resolver interface {
 	// urlPart - base64 decoded single part of shadownet URL, should be in format:
 	//           Type:Name:Parameters
 	Resolve(urlPart string) (common.Nameable, error)
-	ResolveDownloader(name string, params... string) (downloaders.Downloader, error)
-	ResolveTransformer(name string, params... string) (transformers.Transformer, error)
-	ResolveEncryptor(name string, params... string) (encryptors.Encryptor, error)
-	ResolveUploader(name string, params... string) (uploaders.Uploader, error)
+	ResolveDownloader(name string, params... []byte) (downloaders.Downloader, error)
+	ResolveTransformer(name string, params... []byte) (transformers.Transformer, error)
+	ResolveEncryptor(name string, params... []byte) (encryptors.Encryptor, error)
+	ResolveUploader(name string, params... []byte) (uploaders.Uploader, error)
 }
 
 // TODO: add plugin and/or socket and/or IPC bridge implementations

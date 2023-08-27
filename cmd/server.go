@@ -9,8 +9,8 @@ import (
 
 func gateway(w http.ResponseWriter, req *http.Request) {
 	resolver := resolvers.NewBuiltinResolver()
-	downloader, _ := resolver.ResolveDownloader("pastebin")
-	content, err := downloader.Download("yHWR5RQr")
+	downloader, _ := resolver.ResolveDownloader("pastebin", []byte("yHWR5RQr"))
+	content, err := downloader.Download()
 	if err != nil {
 		fmt.Fprintf(w, fmt.Sprintf("%+v", err))
 	}
@@ -23,7 +23,7 @@ func main() {
 	
 	testtext := "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque congue nisi orci, in convallis eros faucibus nec. Cras bibendum elit nisi, et euismod justo dignissim vitae. Donec rutrum tortor euismod ullamcorper pharetra. Nulla nec est metus. Donec ut luctus metus. Maecenas ac mauris et mauris consectetur gravida. Ut vitae laoreet arcu. Donec venenatis tortor non nunc tristique, a rhoncus justo vestibulum. "
 	resolver := resolvers.NewBuiltinResolver()
-	encryptor, err := resolver.ResolveEncryptor("aes", "thereisnospoonthereisnospoonther", "abcdefghabcdefgh")
+	encryptor, err := resolver.ResolveEncryptor("aes", []byte("thereisnospoonthereisnospoonther"), []byte("abcdefghabcdefgh"))
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 		return
