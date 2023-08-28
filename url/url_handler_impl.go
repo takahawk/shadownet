@@ -1,8 +1,10 @@
 package url
 
 import (
+	"fmt"
 	"encoding/base64"
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/takahawk/shadownet/common"
@@ -14,6 +16,8 @@ import (
 type urlHandler struct {
 	resolver resolvers.Resolver
 }
+
+var urlPartPattern = regexp.MustCompile(`(trans|down)_(.+):(.*)`)
 
 func NewUrlHandler() UrlHandler {
 	resolver := resolvers.NewBuiltinResolver()
@@ -46,8 +50,48 @@ func (uh *urlHandler) MakeURL(id string, components... common.Component) (string
 }
 
 func (uh *urlHandler) GetDownloadComponents(url string) ([]common.Component, error) {
-	// TODO: impl
-	return nil, errors.New("Not implemented")
+	components := make([]common.Component, 0)
+	for _, urlPart := range strings.Split(url, ".") {
+		urlPart, err := base64.StdEncoding.DecodeString(urlPart)
+		if err != nil {
+			return nil, err
+		}
+
+		groups := urlPartPattern.FindStringSubmatch(string(urlPart))
+		if len(groups) != 4 {
+			return nil, errors.New(fmt.Sprintf("invalid url part: %s", urlPart))
+		}
+		prefix := groups[1]
+		name := groups[2]
+		strParams := groups[3]
+
+		var params [][]byte
+		if strParams != "" {
+			for _, strParam := range strings.Split(strParams, ",") {
+				param, err := base64.StdEncoding.DecodeString(strParam)
+				if err != nil {
+					return nil, err
+				}
+				params = append(params, param)
+			}
+		}
+
+		var component common.Component
+		switch prefix {
+		case DownloaderURLPrefix:
+			component, err = uh.resolver.ResolveDownloader(name, params...)
+		case TransformerURLPrefix:
+			component, err = uh.resolver.ResolveTransformer(name, params...)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		components = append(components, component)
+
+	}
+	return components, nil
 }
 
 // [Type]_[ID]:[Base64dCommaSeparatedParameters]
@@ -63,9 +107,11 @@ func getURLPart(component common.Component, params... []byte) string {
 	sb.WriteString("_")
 	sb.WriteString(component.Name())
 	sb.WriteString(":")
-	for _, param := range params {
+	for i, param := range params {
 		sb.WriteString(base64.StdEncoding.EncodeToString(param))
-		sb.WriteString(",")
+		if i != len(params) - 1 {
+			sb.WriteString(",")
+		}
 	}
 	return base64.StdEncoding.EncodeToString([]byte(sb.String()))
 }

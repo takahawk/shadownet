@@ -36,18 +36,18 @@ func (pd *pastebinDownloader) Params() [][]byte {
 	return [][]byte{ []byte(pd.pasteID) }
 }
 
-func (pd *pastebinDownloader) Download() (string, error) {
+func (pd *pastebinDownloader) Download() ([]byte, error) {
 	res, err := http.Get(fmt.Sprintf("%s/%s", PastebinRawPrefix, pd.pasteID))
 	if err != nil {
 		// TODO: error handling (wrap etc.)?
-		return "", err
+		return nil, err
 	}
 
 	content, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(content), nil
+	return content, nil
 }

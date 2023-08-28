@@ -15,7 +15,7 @@ func gateway(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, fmt.Sprintf("%+v", err))
 	}
 	
-	fmt.Fprintf(w, content)
+	fmt.Fprintf(w, string(content))
 }
 
 

@@ -6,5 +6,5 @@ import (
 
 type Downloader interface {
 	common.Component
-	Download() (string, error)
+	Download() ([]byte, error)
 }

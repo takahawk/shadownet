@@ -16,7 +16,9 @@ type uploadPipeline struct {
 }
 
 func NewUploadPipeline() UploadPipeline {
-	return &uploadPipeline{}
+	return &uploadPipeline{
+		urlHandler: url.NewUrlHandler(),
+	}
 }
 
 func (up *uploadPipeline) AddSteps(components... common.Component) error {
@@ -53,7 +55,6 @@ func (up *uploadPipeline) Upload(data []byte) (url string, err error) {
 		case transformers.Transformer:
 			data, err = step.ForwardTransform(data)
 		case uploaders.Uploader:
-			
 			id, err = step.Upload(data)
 		}
 

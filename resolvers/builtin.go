@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/takahawk/shadownet/common"
 	"github.com/takahawk/shadownet/downloaders"
 	"github.com/takahawk/shadownet/transformers"
 	"github.com/takahawk/shadownet/uploaders"
@@ -44,12 +43,6 @@ func NewBuiltinResolver() Resolver {
 		},
 	}
 }
-
-func (br *builtinResolver) Resolve(urlPart string) (common.Component, error) {
-	// TODO: impl
-	return nil, errors.New("Not implemented")
-}
-
 
 func (br *builtinResolver) ResolveDownloader(name string, params... []byte) (downloaders.Downloader, error) {
 	if downloaderFactory, ok := br.downloaderDict[name]; ok {
