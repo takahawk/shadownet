@@ -6,7 +6,6 @@ import (
 
 	"github.com/takahawk/shadownet/common"
 	"github.com/takahawk/shadownet/downloaders"
-	"github.com/takahawk/shadownet/encryptors"
 	"github.com/takahawk/shadownet/transformers"
 	"github.com/takahawk/shadownet/uploaders"
 )
@@ -14,7 +13,6 @@ import (
 type builtinResolver struct {
 	downloaderDict map[string] func(params... []byte) (downloaders.Downloader, error)
 	transformerDict map[string] func(params... []byte) (transformers.Transformer, error)
-	encryptorDict map[string] func(params... []byte) (encryptors.Encryptor, error)
 	uploaderDict map[string] func(params... []byte) (uploaders.Uploader, error)
 }
 
@@ -34,10 +32,7 @@ func NewBuiltinResolver() Resolver {
 
 				return transformers.NewBase64Transformer(), nil
 			},
-		},
-
-		encryptorDict: map[string] func(params... []byte) (encryptors.Encryptor, error) {
-			encryptors.AESEncryptorName: func(params... []byte) (encryptors.Encryptor, error) {
+			transformers.AESEncryptorName: func(params... []byte) (transformers.Transformer, error) {
 				return encryptors.NewAESEncryptorWithParams(params...)
 			},
 		},
@@ -69,14 +64,6 @@ func (br *builtinResolver) ResolveTransformer(name string, params... []byte) (tr
 	}
 
 	return nil, errors. New(fmt.Sprintf("there is no built-in transformer with name %s", name))
-}
-
-func (br *builtinResolver) ResolveEncryptor(name string, params... []byte) (encryptors.Encryptor, error) {
-	if encryptorFactory, ok := br.encryptorDict[name]; ok {
-		return encryptorFactory(params...)
-	}
-
-	return nil, errors. New(fmt.Sprintf("there is no built-in encryptor with name %s", name))
 }
 
 func (br *builtinResolver) ResolveUploader(name string, params... []byte) (uploaders.Uploader, error) {

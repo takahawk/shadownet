@@ -4,7 +4,6 @@ import (
 	"github.com/takahawk/shadownet/common"
 	"github.com/takahawk/shadownet/downloaders"
 	"github.com/takahawk/shadownet/transformers"
-	"github.com/takahawk/shadownet/encryptors"
 	"github.com/takahawk/shadownet/uploaders"
 )
 
@@ -14,7 +13,6 @@ type Resolver interface {
 	Resolve(urlPart string) (common.Nameable, error)
 	ResolveDownloader(name string, params... []byte) (downloaders.Downloader, error)
 	ResolveTransformer(name string, params... []byte) (transformers.Transformer, error)
-	ResolveEncryptor(name string, params... []byte) (encryptors.Encryptor, error)
 	ResolveUploader(name string, params... []byte) (uploaders.Uploader, error)
 }
 

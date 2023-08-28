@@ -9,7 +9,6 @@ import (
 	"github.com/takahawk/shadownet/common"
 	"github.com/takahawk/shadownet/uploaders"
 	"github.com/takahawk/shadownet/transformers"
-	"github.com/takahawk/shadownet/encryptors"
 )
 
 type uploadPipeline struct {
@@ -52,9 +51,6 @@ func (up *uploadPipeline) Upload(data []byte) (url string, err error) {
 	var urlParts []string
 	for _, step := range up.steps {
 		switch step := step.(type) {
-		case encryptors.Encryptor:
-			data, err = step.Encrypt(data)
-			urlParts = append(urlParts, getURLPart(step, step.Params()...))
 		case transformers.Transformer:
 			data, err = step.ForwardTransform(data)
 			urlParts = append(urlParts, getURLPart(step, step.Params()...))
@@ -87,8 +83,6 @@ func getURLPart(component common.Component, params... []byte) string {
 	var sb strings.Builder
 
 	switch component.(type) {
-	case encryptors.Encryptor:
-		sb.WriteString(EncryptorURLPrefix)
 	case transformers.Transformer:
 		sb.WriteString(TransformerURLPrefix)
 	case uploaders.Uploader:

@@ -1,4 +1,4 @@
-package encryptors
+package transformers
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ type aesEncryptor struct {
 
 const AESEncryptorName = "aes"
 
-func NewAESEncryptor(key []byte, iv []byte) (Encryptor, error) {
+func NewAESEncryptor(key []byte, iv []byte) (Transformer, error) {
 	if len(key) != 32 {
 		return nil, errors.New("key length should be 32 bytes")
 	}
@@ -28,7 +28,7 @@ func NewAESEncryptor(key []byte, iv []byte) (Encryptor, error) {
 	}, nil
 }
 
-func NewAESEncryptorWithParams(params... []byte) (Encryptor, error) {
+func NewAESEncryptorWithParams(params... []byte) (Transformer, error) {
 	if len(params) != 2 {
 		return nil, errors.New("there should be 2 parameters: key and iv")
 	}
@@ -46,7 +46,7 @@ func (ae *aesEncryptor) Params() [][]byte {
 	return [][]byte{ ae.key, ae.iv }
 }
 
-func (ae *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
+func (ae *aesEncryptor) ForwardTransform(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(ae.key)
 
 	if err != nil {
@@ -68,7 +68,7 @@ func (ae *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
 
 // The key should be 48 bytes.
 // First 32 bytes in key are actual key, the last 16 bytes are initialization vector
-func (ae *aesEncryptor) Decrypt(data []byte) ([]byte, error) {
+func (ae *aesEncryptor) ReverseTransform(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(ae.key)
 
 	if err != nil {

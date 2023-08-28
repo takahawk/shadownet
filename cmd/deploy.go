@@ -8,7 +8,6 @@ import (
 
 	"github.com/takahawk/shadownet/pipelines"
 	"github.com/takahawk/shadownet/transformers"
-	"github.com/takahawk/shadownet/encryptors"
 	"github.com/takahawk/shadownet/uploaders"
 )
 
@@ -41,7 +40,7 @@ func main() {
 
 	data := []byte("<html><body><b>Bold text</b><br><i>Italic text</i><br>Plain text</body></html")
 	pipeline := pipelines.NewUploadPipeline()
-	encryptor, _ := encryptors.NewAESEncryptor([]byte("thereisnospoonthereisnospoonther"), []byte("abcdefghabcdefgh"))
+	encryptor, _ := transformers.NewAESEncryptor([]byte("thereisnospoonthereisnospoonther"), []byte("abcdefghabcdefgh"))
 	err := pipeline.AddSteps(
 		encryptor, 
 		transformers.NewBase64Transformer(), 
