@@ -33,7 +33,7 @@ func NewBuiltinResolver() Resolver {
 				return transformers.NewBase64Transformer(), nil
 			},
 			transformers.AESEncryptorName: func(params... []byte) (transformers.Transformer, error) {
-				return encryptors.NewAESEncryptorWithParams(params...)
+				return transformers.NewAESEncryptorWithParams(params...)
 			},
 		},
 
@@ -45,8 +45,9 @@ func NewBuiltinResolver() Resolver {
 	}
 }
 
-func (br *builtinResolver) Resolve(urlPart string) (common.Nameable, error) {
-	return nil, nil
+func (br *builtinResolver) Resolve(urlPart string) (common.Component, error) {
+	// TODO: impl
+	return nil, errors.New("Not implemented")
 }
 
 

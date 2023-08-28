@@ -1,18 +1,17 @@
 package pipelines
 
 import (
-	"encoding/base64"
-
 	"errors"
-	"strings"
 
 	"github.com/takahawk/shadownet/common"
 	"github.com/takahawk/shadownet/uploaders"
+	"github.com/takahawk/shadownet/url"
 	"github.com/takahawk/shadownet/transformers"
 )
 
 type uploadPipeline struct {
 	finalized bool
+	urlHandler url.UrlHandler
 	steps []common.Component
 }
 
@@ -48,16 +47,14 @@ func (up *uploadPipeline) Upload(data []byte) (url string, err error) {
 		return "", errors.New("pipeline should be finalized with uploader")
 	}
 
-	var urlParts []string
+	var id string
 	for _, step := range up.steps {
 		switch step := step.(type) {
 		case transformers.Transformer:
 			data, err = step.ForwardTransform(data)
-			urlParts = append(urlParts, getURLPart(step, step.Params()...))
 		case uploaders.Uploader:
-			var id string
+			
 			id, err = step.Upload(data)
-			urlParts = append(urlParts, getURLPart(step, []byte(id)))
 		}
 
 		if err != nil {
@@ -67,33 +64,5 @@ func (up *uploadPipeline) Upload(data []byte) (url string, err error) {
 		
 	}
 
-	var sb strings.Builder
-	for i := len(urlParts) - 1; i > 0; i-- {
-		sb.WriteString(urlParts[i])
-		sb.WriteString(".")
-	}
-	sb.WriteString(urlParts[0])
-
-	return sb.String(), nil
-	
-}
-
-// [Type]_[ID]:[Base64dCommaSeparatedParameters]
-func getURLPart(component common.Component, params... []byte) string {
-	var sb strings.Builder
-
-	switch component.(type) {
-	case transformers.Transformer:
-		sb.WriteString(TransformerURLPrefix)
-	case uploaders.Uploader:
-		sb.WriteString(DownloaderURLPrefix)
-	}
-	sb.WriteString("_")
-	sb.WriteString(component.Name())
-	sb.WriteString(":")
-	for _, param := range params {
-		sb.WriteString(base64.StdEncoding.EncodeToString(param))
-		sb.WriteString(",")
-	}
-	return base64.StdEncoding.EncodeToString([]byte(sb.String()))
+	return up.urlHandler.MakeURL(id, up.steps...)
 }
