@@ -6,11 +6,11 @@ import (
 	"os"
 //	"github.com/pborman/getopt"
 
-	// "github.com/takahawk/shadownet/pipelines"
-	"github.com/takahawk/shadownet/downloaders"
-	"github.com/takahawk/shadownet/transformers"
+	"github.com/takahawk/shadownet/pipelines"
+	// "github.com/takahawk/shadownet/downloaders"
+	// "github.com/takahawk/shadownet/transformers"
 	// "github.com/takahawk/shadownet/uploaders"
-	"github.com/takahawk/shadownet/url"
+	// "github.com/takahawk/shadownet/url"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 	// optEncryptor := getopt.StringLong("encryptor", 'e', "", "Encryptor name")
 	// optFile := getopt.StringLong("file", 'f', "", "File to upload")
 	// optHelp := getopt.BoolLong("help", 'h', "Help")
-	// // devKey := "" // TODO: set
+	// devKey := "" // TODO: set
 	
 	// getopt.Parse()
 
@@ -59,26 +59,15 @@ func main() {
 	// fmt.Printf("URL: %+v\n", shadowURL)
 	shadowURL := "ZG93bl9wYXN0ZWJpbjpjRzU1Y1Zaa2RuST0=.dHJhbnNfYmFzZTY0Og==.dHJhbnNfYWVzOmRHaGxjbVZwYzI1dmMzQnZiMjUwYUdWeVpXbHpibTl6Y0c5dmJuUm9aWEk9LFlXSmpaR1ZtWjJoaFltTmtaV1puYUE9PQ=="
 
-	urlHandler := url.NewUrlHandler()
-	components, err := urlHandler.GetDownloadComponents(shadowURL)
+	pipeline, err := pipelines.NewDownloadPipelineByURL(shadowURL)
 	if err != nil {
-		fmt.Printf("Error: %+v", err)
+		fmt.Printf("Error: %+v\n", err)
 		os.Exit(-1)
 	}
-
-	var data []byte
-	for _, component := range components {
-		switch component := component.(type) {
-		case downloaders.Downloader:
-			data, err = component.Download()
-		case transformers.Transformer:
-			data, err = component.ReverseTransform(data)
-		}
-
-		if err != nil {
-			fmt.Printf("Error: %+v", err)
-			os.Exit(-1)
-		}
+	data, err := pipeline.Download()
+	if err != nil {
+		fmt.Printf("Error: %+v\n", err)
+		os.Exit(-1)
 	}
 	fmt.Printf("Data: %+v", string(data))
 }
