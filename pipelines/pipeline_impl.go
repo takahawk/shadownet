@@ -112,6 +112,9 @@ func (dp *downloadPipeline) AddSteps(components... common.Component) error {
 }
 
 func (dp *downloadPipeline) Download() (data []byte, err error) {
+	if len(dp.steps) == 0 {
+		return nil, errors.New("empty download pipeline")
+	}
 	for _, component := range dp.steps {
 		switch component := component.(type) {
 		case downloaders.Downloader:

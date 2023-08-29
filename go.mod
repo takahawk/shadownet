@@ -2,6 +2,8 @@ module github.com/takahawk/shadownet
 
 go 1.21.0
 
+replace github.com/takahawk/shadownet/gateway => ./gateway
+
 replace github.com/takahawk/shadownet/downloaders => ./downloaders
 
 replace github.com/takahawk/shadownet/transformers => ./transformers
