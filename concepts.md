@@ -13,3 +13,6 @@ After decoding it from base64 all parts (at least for built-in downloaders) will
 Type can be "enc", "trans" or "down"
 
 ## Storage
+
+## Ideas:
+Keyring?
