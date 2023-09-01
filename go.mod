@@ -12,4 +12,7 @@ replace github.com/takahawk/shadownet/resolvers => ./resolvers
 
 replace github.com/takahawk/shadownet/common => ./common
 
-require github.com/pborman/getopt v1.1.0 // indirect
+require (
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/pborman/getopt v1.1.0 // indirect
+)

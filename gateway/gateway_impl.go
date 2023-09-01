@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/takahawk/shadownet/pipelines"
 	"github.com/takahawk/shadownet/resolvers"
 )
@@ -32,8 +33,11 @@ func NewShadowGateway() ShadownetGateway {
 }
 
 func (sg *shadowGateway) Start(port int) error {
-	http.HandleFunc("/", sg.handleGatewayRequest)
-	http.HandleFunc("/setupPipeline", sg.handleSetupPipelineRequest)
+	r := mux.NewRouter()
+	r.HandleFunc("/", sg.handleGatewayRequest).Methods("GET")
+	r.HandleFunc("/setupPipeline", sg.handleSetupPipelineRequest).Methods("POST")
+	http.Handle("/", r)
+
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
