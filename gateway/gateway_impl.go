@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -34,16 +34,17 @@ func NewShadowGateway() ShadownetGateway {
 
 func (sg *shadowGateway) Start(port int) error {
 	r := mux.NewRouter()
-	r.HandleFunc("/", sg.handleGatewayRequest).Methods("GET")
+	r.HandleFunc("/{shadowUrl}", sg.handleGatewayRequest).Methods("GET")
 	r.HandleFunc("/setupPipeline", sg.handleSetupPipelineRequest).Methods("POST")
+	r.HandleFunc("/upload/{pipelineName}", sg.handleUploadFileRequest).Methods("POST")
 	http.Handle("/", r)
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func (sg *shadowGateway) handleGatewayRequest(w http.ResponseWriter, req *http.Request) {
-	// TODO: handle empty case separately
-	shadowUrl := req.URL.Path[1:]
+	vars := mux.Vars(req)
+	shadowUrl := vars["shadowUrl"]
 	pipeline, err := pipelines.NewDownloadPipelineByURL(shadowUrl)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -62,7 +63,7 @@ func (sg *shadowGateway) handleGatewayRequest(w http.ResponseWriter, req *http.R
 func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		b, err := ioutil.ReadAll(req.Body)
+		b, err := io.ReadAll(req.Body)
 		defer req.Body.Close()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -101,7 +102,6 @@ func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *
 		resolver := resolvers.NewBuiltinResolver()
 		
 		for i := 0; i < len(request.Components) - 1; i++ {
-			fmt.Printf("%+v\n", pipeline)
 			transformer, err := resolver.ResolveTransformer(request.Components[i].Name, byteParams[i]...)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -132,6 +132,7 @@ func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *
 		// TODO: check if name exists
 		sg.pipelines[request.Name] = pipeline
 
+		fmt.Printf("Pipeline with name \"%s\" successfully added\n", request.Name)
 		fmt.Fprintf(w, "Pipeline with name \"%s\" successfully added\n", request.Name)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
@@ -140,5 +141,41 @@ func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *
 }
 
 func (sg *shadowGateway) handleUploadFileRequest(w http.ResponseWriter, req *http.Request) {
-	// TODO: impl
+	vars := mux.Vars(req)
+	pipelineName := vars["pipelineName"]
+
+	if _, ok := sg.pipelines[pipelineName]; !ok {
+		http.Error(w, fmt.Sprintf("there is no pipeline with name %s", pipelineName), http.StatusNotFound)
+		return
+	}
+
+	file, _, err := req.FormFile("file")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	// TODO: mb better to make it work with Reader interface
+	b, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	pipeline := sg.pipelines[pipelineName]
+	url, err := pipeline.Upload(b)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := make(map[string]string)
+	response["url"] = url
+	responseJson, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(responseJson)
 }
