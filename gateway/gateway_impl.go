@@ -26,7 +26,9 @@ type setupPipelineRequest struct {
 }
 
 func NewShadowGateway() ShadownetGateway {
-	return &shadowGateway{}
+	return &shadowGateway{
+		pipelines: make(map[string] pipelines.UploadPipeline),
+	}
 }
 
 func (sg *shadowGateway) Start(port int) error {
@@ -93,22 +95,9 @@ func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *
 		pipeline := pipelines.NewUploadPipeline()
 
 		resolver := resolvers.NewBuiltinResolver()
-		uploaderSpec := request.Components[0]
-
-		uploader, err := resolver.ResolveUploader(uploaderSpec.Name, byteParams[0]...)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
 		
-		err = pipeline.AddSteps(uploader)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		for i := 1; i < len(request.Components); i++ {
-			
+		for i := 0; i < len(request.Components) - 1; i++ {
+			fmt.Printf("%+v\n", pipeline)
 			transformer, err := resolver.ResolveTransformer(request.Components[i].Name, byteParams[i]...)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -121,13 +110,29 @@ func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *
 			}
 		}
 
+		// TODO: mb double-check for uploader and send human-friendly error
+		uploaderSpec := request.Components[len(request.Components) - 1]
+
+		uploader, err := resolver.ResolveUploader(uploaderSpec.Name, byteParams[len(request.Components) - 1]...)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		
+		err = pipeline.AddSteps(uploader)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// TODO: check if name exists
 		sg.pipelines[request.Name] = pipeline
+
+		fmt.Fprintf(w, "Pipeline with name \"%s\" successfully added\n", request.Name)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "method %s not supported", req.Method)
 	}
-
-	fmt.Printf("%+v", sg.pipelines)
 }
 
 func (sg *shadowGateway) handleUploadFileRequest(w http.ResponseWriter, req *http.Request) {
