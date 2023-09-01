@@ -61,83 +61,77 @@ func (sg *shadowGateway) handleGatewayRequest(w http.ResponseWriter, req *http.R
 }
 
 func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodPost:
-		b, err := io.ReadAll(req.Body)
-		defer req.Body.Close()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		var request setupPipelineRequest
-		err = json.Unmarshal(b, &request)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		if len(request.Components) == 0 {
-			http.Error(w, "there should be at least one component", http.StatusBadRequest)
-			return
-		}
-
-		var byteParams [][][]byte
-		for j, component := range request.Components {
-			byteParams = append(byteParams, nil)
-			for _, param := range component.Params {
-				if component.IsParamsBase64d {
-					decoded, err := base64.StdEncoding.DecodeString(param)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusBadRequest)
-						return
-					}
-					byteParams[j] = append(byteParams[j], decoded)
-				} else {
-					byteParams[j] = append(byteParams[j], []byte(param))
-				}
-			} 
-		}
-
-		pipeline := pipelines.NewUploadPipeline()
-
-		resolver := resolvers.NewBuiltinResolver()
-		
-		for i := 0; i < len(request.Components) - 1; i++ {
-			transformer, err := resolver.ResolveTransformer(request.Components[i].Name, byteParams[i]...)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			err = pipeline.AddSteps(transformer)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-		}
-
-		// TODO: mb double-check for uploader and send human-friendly error
-		uploaderSpec := request.Components[len(request.Components) - 1]
-
-		uploader, err := resolver.ResolveUploader(uploaderSpec.Name, byteParams[len(request.Components) - 1]...)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		
-		err = pipeline.AddSteps(uploader)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		// TODO: check if name exists
-		sg.pipelines[request.Name] = pipeline
-
-		fmt.Printf("Pipeline with name \"%s\" successfully added\n", request.Name)
-		fmt.Fprintf(w, "Pipeline with name \"%s\" successfully added\n", request.Name)
-	default:
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "method %s not supported", req.Method)
+	b, err := io.ReadAll(req.Body)
+	defer req.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	var request setupPipelineRequest
+	err = json.Unmarshal(b, &request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if len(request.Components) == 0 {
+		http.Error(w, "there should be at least one component", http.StatusBadRequest)
+		return
+	}
+
+	var byteParams [][][]byte
+	for j, component := range request.Components {
+		byteParams = append(byteParams, nil)
+		for _, param := range component.Params {
+			if component.IsParamsBase64d {
+				decoded, err := base64.StdEncoding.DecodeString(param)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+				byteParams[j] = append(byteParams[j], decoded)
+			} else {
+				byteParams[j] = append(byteParams[j], []byte(param))
+			}
+		} 
+	}
+
+	pipeline := pipelines.NewUploadPipeline()
+
+	resolver := resolvers.NewBuiltinResolver()
+	
+	for i := 0; i < len(request.Components) - 1; i++ {
+		transformer, err := resolver.ResolveTransformer(request.Components[i].Name, byteParams[i]...)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = pipeline.AddSteps(transformer)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	// TODO: mb double-check for uploader and send human-friendly error
+	uploaderSpec := request.Components[len(request.Components) - 1]
+
+	uploader, err := resolver.ResolveUploader(uploaderSpec.Name, byteParams[len(request.Components) - 1]...)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	err = pipeline.AddSteps(uploader)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// TODO: check if name exists
+	sg.pipelines[request.Name] = pipeline
+
+	fmt.Printf("Pipeline with name \"%s\" successfully added\n", request.Name)
+	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully added\n", request.Name)
 }
 
 func (sg *shadowGateway) handleUploadFileRequest(w http.ResponseWriter, req *http.Request) {

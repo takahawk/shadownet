@@ -1,6 +1,6 @@
 module github.com/takahawk/shadownet
 
-go 1.21.0
+go 1.21
 
 replace github.com/takahawk/shadownet/gateway => ./gateway
 

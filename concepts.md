@@ -10,9 +10,19 @@ So, in general URL will have the following structure:
 
 After decoding it from base64 all parts (at least for built-in downloaders) will have the following structure:
 [Type]_[ID]:[Base64dCommaSeparatedParameters]
-Type can be "enc", "trans" or "down"
-
+Type can be "enc", "trans" or "down".
 ## Storage
 
 ## Ideas:
+Editable storage
 Keyring?
+How to work with OAuth Flow?
+
+### Applications
+Journal
+Chat
+Photo Storage
+Music Streaming
+
+### Storages
+Google Drive
