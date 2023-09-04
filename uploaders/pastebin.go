@@ -12,33 +12,50 @@ import (
 	"strings"
 )
 
+// PastebinUploaderName is pastebin uploader component name
 const PastebinUploaderName = "pastebin"
 
+// TODO: mb should use N?
+// MaximumPastebinExpireTime is maximum value for `api_paste_expire_date` and
+// it means 1 year. Other possible values are: N (never), 10M (10 minutes),
+// 1H (1 hour), 1D (1 day), 1W (1 week), 2W (2 week), 1M (1 month),
+// 6M (6 months)
 const MaximumPastebinExpireTime = "1Y"
+
+// PastebinUploadApiOption is value for `api_option` parameter that should be
+// set to this for upload operation
 const PastebinUploadApiOption = "paste"
+
 const (
+	// PastebinPrivacyPublic is parameter for `api_paste_private` used to make
+	// paste public (available for anyone and listed in search results)
 	PastebinPrivacyPublic = "0"
+	// PastebinPrivacyUnlisted is parameter for `api_paste_private` used to make
+	// paste unlisted (available for anyone but not listed in search results)
 	PastebinPrivacyUnlisted = "1"
+	// PastebinPrivacyPrivate is parameter for `api_paste_private` used to make
+	// paste private (accessible only when logged in to corresponding account)
 	PastebinPrivacyPrivate = "2"
 )
 
 var successfulResponsePattern = regexp.MustCompile(`https://pastebin.com/(.+)$`)
-	
 
 type pastebinUploader struct {
 	apiKey string
 }
 
-// KIM:
-// 1) Maximum storage time is one year
-// 2) Maximum number of unlisted pastes for free account are 25
+// NewPastebinUploader returns uploader that uploads data to Pastebin for a
+// given API key that will be used to make upload requests
 func NewPastebinUploader(apiKey string) Uploader {
 	return &pastebinUploader{
 		apiKey: apiKey,
 	}
 }
 
-func NewPastebinUploaderWithParams(params... []byte) (Uploader, error) {
+// NewPastebinUploaderWithParams returns uploader for a given params. It
+// does expect single param that is API key. It exists only for convenience
+// doing effectively the same as NewPastebinUploader
+func NewPastebinUploaderWithParams(params ...[]byte) (Uploader, error) {
 	if len(params) != 1 {
 		return nil, errors.New("there should be 1 parameters: pastebin developer key")
 	}
@@ -47,15 +64,17 @@ func NewPastebinUploaderWithParams(params... []byte) (Uploader, error) {
 	return &pastebinUploader{apiKey}, nil
 }
 
+// Name returns pastebin uploader name. It is always PastebinUploaderName
 func (pu *pastebinUploader) Name() string {
 	return PastebinUploaderName
 }
 
-
+// Params returns API key packed into byte array
 func (pu *pastebinUploader) Params() [][]byte {
-	return [][]byte{ []byte(pu.apiKey) }
+	return [][]byte{[]byte(pu.apiKey)}
 }
 
+// Upload saves data in byte array as a paste on Pastebin
 func (pu *pastebinUploader) Upload(content []byte) (id string, err error) {
 	// TODO: should check if this is possible to upload binary data
 	// TODO: implement

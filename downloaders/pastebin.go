@@ -7,35 +7,50 @@ import (
 	"net/http"
 )
 
+// PastebinRawPrefix is prefix for URL used to get saved paste in raw
+// (e.g. https://pastebin.com/raw/y1FKvrXe)
 const PastebinRawPrefix = "https://pastebin.com/raw"
+
+// PastebinPostUrl is URL to post new paste to Pastebin
 const PastebinPostUrl = "https://pastebin.com/api/api_post.php"
 
 type pastebinDownloader struct {
 	pasteID string
 }
+
+// PastebinDownloaderName is pastebin downloader component name
 const PastebinDownloaderName = "pastebin"
 
+// NewPastebinDownloader returns downloader for a given paste ID. Paste ID is
+// the last part in the URL used to identify paste (e.g. y1FKvrXe in
+// https://pastebin.com/raw/y1FKvrXe)
 func NewPastebinDownloader(pasteID string) Downloader {
 	return &pastebinDownloader{
 		pasteID: pasteID,
 	}
 }
 
-func NewPastebinDownloaderWithParams(params... []byte) (Downloader, error) {
+// NewPastebinDownloaderWithParams returns downloader for a given params. It
+// does expect single param that is paste ID. It exists only for convenience
+// doing effectively the same as NewPastebinDownloader
+func NewPastebinDownloaderWithParams(params ...[]byte) (Downloader, error) {
 	if len(params) != 1 {
 		return nil, errors.New("there should be only 1 param: paste ID")
 	}
 	return NewPastebinDownloader(string(params[0])), nil
 }
 
+// Name returns pastebin downloader name. It is always PastebinDownloaderName
 func (pd *pastebinDownloader) Name() string {
 	return PastebinDownloaderName
 }
 
+// Params returns paste ID packed into byte array
 func (pd *pastebinDownloader) Params() [][]byte {
-	return [][]byte{ []byte(pd.pasteID) }
+	return [][]byte{[]byte(pd.pasteID)}
 }
 
+// Download returns downloaded paste in a byte array
 func (pd *pastebinDownloader) Download() ([]byte, error) {
 	res, err := http.Get(fmt.Sprintf("%s/%s", PastebinRawPrefix, pd.pasteID))
 	if err != nil {
