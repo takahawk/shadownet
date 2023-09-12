@@ -11,6 +11,6 @@ func main() {
 
 	logger := logger.NewZerologLogger(logger.NewZerologLoggerConfig())
 	logger.Info("Hello world")
-	gateway := gateway.NewShadowGateway()
+	gateway := gateway.NewShadowGateway(logger)
 	gateway.Start(port)
 }

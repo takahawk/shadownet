@@ -37,3 +37,11 @@ func (zl *zerologLogger) Info(msg string) {
 func (zl *zerologLogger) Infof(format string, args ...interface{}) {
 	zl.logger.Info().Msgf(format, args...)
 }
+
+func (zl *zerologLogger) Error(msg string) {
+	zl.logger.Error().Msg(msg)
+}
+
+func (zl *zerologLogger) Errorf(format string, args ...interface{}) {
+	zl.logger.Error().Msgf(format, args...)
+}
