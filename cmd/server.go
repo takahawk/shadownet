@@ -3,7 +3,10 @@ package main
 import (
 	"github.com/takahawk/shadownet/gateway"
 	"github.com/takahawk/shadownet/logger"
+	"github.com/takahawk/shadownet/storages"
 )
+
+const DefaultDatabaseFilename = "shadownet.db"
 
 func main() {
 	// TODO: set port through options
@@ -11,6 +14,10 @@ func main() {
 
 	logger := logger.NewZerologLogger(logger.NewZerologLoggerConfig())
 	logger.Info("Hello world")
-	gateway := gateway.NewShadowGateway(logger)
+	storage, err := storages.NewSqliteStorage(DefaultDatabaseFilename, logger)
+	if err != nil {
+		return
+	}
+	gateway := gateway.NewShadowGateway(logger, storage)
 	gateway.Start(port)
 }
