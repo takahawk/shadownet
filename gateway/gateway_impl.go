@@ -38,9 +38,13 @@ func NewShadowGateway(logger logger.Logger, storage storages.Storage) ShadownetG
 
 func (sg *shadowGateway) Start(port int) error {
 	r := mux.NewRouter()
-	r.HandleFunc("/{shadowUrl}", sg.handleGatewayRequest).Methods("GET")
-	r.HandleFunc("/setupPipeline/{pipelineName}", sg.handleSetupPipelineRequest).Methods("POST")
-	r.HandleFunc("/upload/{pipelineName}", sg.handleUploadFileRequest).Methods("POST")
+	r.HandleFunc("/pipelines", sg.handleListPipelinesRequest).Methods(http.MethodGet)
+	r.HandleFunc("/{shadowUrl}", sg.handleGatewayRequest).Methods(http.MethodGet)
+	r.HandleFunc("/pipelines/{pipelineName}", sg.handleAddPipelineRequest).Methods(http.MethodPost)
+	r.HandleFunc("/pipelines/{pipelineName}", sg.handleUpdatePipelineRequest).Methods(http.MethodPut)
+	r.HandleFunc("/pipelines/{pipelineName}", sg.handleDeletePipelineRequest).Methods(http.MethodDelete)
+
+	r.HandleFunc("/pipelines/{pipelineName}/upload", sg.handleUploadFileRequest).Methods(http.MethodPost)
 	http.Handle("/", r)
 	sg.logger.Infof("Starting ShadowNet gateway on port %d", port)
 
@@ -70,7 +74,28 @@ func (sg *shadowGateway) handleGatewayRequest(w http.ResponseWriter, req *http.R
 	fmt.Fprintf(w, string(data))
 }
 
-func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *http.Request) {
+func (sg *shadowGateway) handleListPipelinesRequest(w http.ResponseWriter, req *http.Request) {
+	pipelineJsons, err := sg.storage.ListPipelineJSONs()
+	sg.logger.Error("1")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sg.logger.Errorf("%+v", err)
+		return
+	}
+
+	data, err := json.Marshal(pipelineJsons)
+	sg.logger.Error("2")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sg.logger.Errorf("%+v", err)
+		return
+	}
+
+	sg.logger.Error("3")
+	fmt.Fprintf(w, string(data))
+}
+
+func (sg *shadowGateway) handleAddPipelineRequest(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	pipelineName := vars["pipelineName"]
 	b, err := io.ReadAll(req.Body)
@@ -92,9 +117,49 @@ func (sg *shadowGateway) handleSetupPipelineRequest(w http.ResponseWriter, req *
 		return
 	}
 
-	// TODO: check if name exists
 	sg.logger.Infof("Pipeline with name \"%s\" successfully added\n", pipelineName)
 	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully added\n", pipelineName)
+}
+
+func (sg *shadowGateway) handleUpdatePipelineRequest(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	pipelineName := vars["pipelineName"]
+
+	b, err := io.ReadAll(req.Body)
+	defer req.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sg.logger.Errorf("%+v", err)
+		return
+	}
+	pipelineJson := string(b)
+	_, err = sg.parsePipeline(pipelineJson)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = sg.storage.UpdatePipelineJSON(pipelineName, pipelineJson)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sg.logger.Infof("Pipeline with name \"%s\" successfully updated\n", pipelineName)
+	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully updated\n", pipelineName)
+}
+
+func (sg *shadowGateway) handleDeletePipelineRequest(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	pipelineName := vars["pipelineName"]
+
+	err := sg.storage.DeletePipelineJSON(pipelineName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sg.logger.Infof("Pipeline with name \"%s\" successfully deleted\n", pipelineName)
+	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully deleted\n", pipelineName)
 }
 
 func (sg *shadowGateway) handleUploadFileRequest(w http.ResponseWriter, req *http.Request) {

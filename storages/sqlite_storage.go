@@ -42,6 +42,27 @@ func NewSqliteStorage(filename string, logger logger.Logger) (Storage, error) {
 	return storage, nil
 }
 
+func (ss *sqliteStorage) ListPipelineJSONs() ([]PipelineJSONsListEntry, error) {
+	result := make([]PipelineJSONsListEntry, 0)
+	rows, err := ss.db.Query("SELECT name, json FROM pipelines")
+	if err != nil {
+		ss.logger.Errorf("Error getting pipeline: %+v", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		var entry PipelineJSONsListEntry
+		err = rows.Scan(&entry.Name, &entry.JSON)
+		if err != nil {
+			ss.logger.Errorf("Error getting pipeline: %+v", err)
+			return nil, err
+		}
+		result = append(result, entry)
+	}
+
+	return result, nil
+}
+
 func (ss *sqliteStorage) SavePipelineJSON(name string, json string) error {
 	_, err := ss.db.Exec("INSERT INTO pipelines (name, json) VALUES (?, ?)", name, json)
 	if err != nil {
@@ -61,6 +82,26 @@ func (ss *sqliteStorage) LoadPipelineJSON(name string) (json string, err error) 
 		return "", err
 	}
 	return pipelineJson, nil
+}
+
+func (ss *sqliteStorage) UpdatePipelineJSON(name string, json string) error {
+	_, err := ss.db.Exec("UPDATE pipelines SET json = ? WHERE name = ?", json, name)
+	if err != nil {
+		ss.logger.Errorf("Error updating pipeline: %+v", err)
+		// mb more verbose logging?
+		return err
+	}
+	return nil
+}
+
+func (ss *sqliteStorage) DeletePipelineJSON(name string) error {
+	_, err := ss.db.Exec("DELETE FROM pipelines WHERE name = ?", name)
+	if err != nil {
+		ss.logger.Errorf("Error deleting pipeline: %+v", err)
+		// mb more verbose logging?
+		return err
+	}
+	return nil
 }
 
 func (ss *sqliteStorage) getSchemaVersion() (int, error) {
