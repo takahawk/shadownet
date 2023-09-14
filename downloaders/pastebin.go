@@ -14,6 +14,7 @@ const PastebinRawPrefix = "https://pastebin.com/raw"
 // PastebinPostUrl is URL to post new paste to Pastebin
 const PastebinPostUrl = "https://pastebin.com/api/api_post.php"
 
+// TODO: make generic Web downloader instead
 type pastebinDownloader struct {
 	pasteID string
 }
