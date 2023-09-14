@@ -72,6 +72,14 @@ func NewDropboxUploader(accessToken string, logger logger.Logger) Uploader {
 	}
 }
 
+// TODO: do smthng with logger!
+func NewDropboxUploaderWithParams(params ...[]byte) (Uploader, error) {
+	if len(params) != 1 {
+		return nil, errors.New("there should be exactly 1 parameter: Dropbox access token")
+	}
+	return NewDropboxUploader(string(params[0]), nil), nil
+}
+
 func (du *dropboxUploader) Name() string {
 	return DropboxUploaderName
 }

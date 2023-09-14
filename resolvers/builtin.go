@@ -20,9 +20,7 @@ type builtinResolver struct {
 func NewBuiltinResolver() Resolver {
 	return &builtinResolver{
 		downloaderDict: map[string]func(params ...[]byte) (downloaders.Downloader, error){
-			downloaders.PastebinDownloaderName: func(params ...[]byte) (downloaders.Downloader, error) {
-				return downloaders.NewPastebinDownloaderWithParams(params...)
-			},
+			downloaders.PastebinDownloaderName: downloaders.NewPastebinDownloaderWithParams,
 		},
 
 		transformerDict: map[string]func(params ...[]byte) (transformers.Transformer, error){
@@ -33,15 +31,12 @@ func NewBuiltinResolver() Resolver {
 
 				return transformers.NewBase64Transformer(), nil
 			},
-			transformers.AESEncryptorName: func(params ...[]byte) (transformers.Transformer, error) {
-				return transformers.NewAESEncryptorWithParams(params...)
-			},
+			transformers.AESEncryptorName: transformers.NewAESEncryptorWithParams,
 		},
 
 		uploaderDict: map[string]func(params ...[]byte) (uploaders.Uploader, error){
-			uploaders.PastebinUploaderName: func(params ...[]byte) (uploaders.Uploader, error) {
-				return uploaders.NewPastebinUploaderWithParams(params...)
-			},
+			uploaders.PastebinUploaderName: uploaders.NewPastebinUploaderWithParams,
+			uploaders.DropboxUploaderName:  uploaders.NewDropboxUploaderWithParams,
 		},
 	}
 }
