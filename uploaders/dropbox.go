@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/takahawk/shadownet/logger"
@@ -32,7 +33,7 @@ type dropboxUploadApiArg struct {
 	Autorename     bool   `json:"autorename"`
 	Mode           string `json:"mode"`
 	Mute           bool   `json:"mute"`
-	Path           string `json:"string"`
+	Path           string `json:"path"`
 	StrictConflict bool   `json:"strict_conflict"`
 }
 
@@ -64,9 +65,9 @@ func (du *dropboxUploader) Upload(data []byte) (id string, err error) {
 	id = generateRandomFilename()
 	args := dropboxUploadApiArg{
 		Autorename:     false,
-		Mode:           DropboxApiUrlUpload,
+		Mode:           DropboxUploadArgModeAdd,
 		Mute:           true,
-		Path:           id,
+		Path:           fmt.Sprintf("/%s", id),
 		StrictConflict: true,
 	}
 	apiArgs, err := json.Marshal(args)
@@ -85,9 +86,16 @@ func (du *dropboxUploader) Upload(data []byte) (id string, err error) {
 	}
 	if rsp.StatusCode != http.StatusOK {
 		du.logger.Errorf("Request failed with status code: %d", rsp.StatusCode)
+		body, err := io.ReadAll(rsp.Body)
+		if err != nil {
+			du.logger.Errorf("Error reading response body: %s", string(body))
+		}
+		du.logger.Errorf(string(body))
 		return "", errors.New("request failed")
 	}
-	du.logger.Info("Success")
+	du.logger.Infof("Success uploading data to Dropbox. ID: %s", id)
+
+	return
 }
 
 // TODO: mb create separate utils package for such things
