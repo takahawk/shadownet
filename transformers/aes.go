@@ -10,11 +10,17 @@ import (
 
 type aesEncryptor struct {
 	key []byte
-	iv []byte
+	iv  []byte
 }
 
+// AESEncryptorName is component name for AES encryptor
 const AESEncryptorName = "aes"
 
+// NewAESEncryptor creates new transformer that allows to encrypt and decrypt
+// data using AES algorithm.
+// Key and initialization vector must be provided.
+// Key should be 32 bytes long.
+// And initialization vector should be 16 bytes long.
 func NewAESEncryptor(key []byte, iv []byte) (Transformer, error) {
 	if len(key) != 32 {
 		return nil, errors.New("key length should be 32 bytes")
@@ -22,13 +28,16 @@ func NewAESEncryptor(key []byte, iv []byte) (Transformer, error) {
 	if len(iv) != 16 {
 		return nil, errors.New("key length should be 16 bytes")
 	}
-	return &aesEncryptor {
+	return &aesEncryptor{
 		key: key,
-		iv: iv,
+		iv:  iv,
 	}, nil
 }
 
-func NewAESEncryptorWithParams(params... []byte) (Transformer, error) {
+// NewAESEncryptorWithParams is convenience function that call NewAESEncryptor
+// with parameters (that is, first is the key and second is initialization
+// vector) packed into slice.
+func NewAESEncryptorWithParams(params ...[]byte) (Transformer, error) {
 	if len(params) != 2 {
 		return nil, errors.New("there should be 2 parameters: key and iv")
 	}
@@ -38,14 +47,18 @@ func NewAESEncryptorWithParams(params... []byte) (Transformer, error) {
 	return NewAESEncryptor(key, iv)
 }
 
+// Name returns component name of AES encryptor. It is always AESEncryptorName
 func (ae *aesEncryptor) Name() string {
 	return AESEncryptorName
 }
 
+// Params returns key and initialization vector packed into slice
 func (ae *aesEncryptor) Params() [][]byte {
-	return [][]byte{ ae.key, ae.iv }
+	return [][]byte{ae.key, ae.iv}
 }
 
+// ForwardTransform returns byte sequence encoded with AES algorithm using
+// key and initialization vector acquired during AES transformer creation
 func (ae *aesEncryptor) ForwardTransform(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(ae.key)
 
@@ -54,7 +67,7 @@ func (ae *aesEncryptor) ForwardTransform(data []byte) ([]byte, error) {
 	}
 
 	// padding
-	padding := block.BlockSize() - len(data) % block.BlockSize()
+	padding := block.BlockSize() - len(data)%block.BlockSize()
 	padbytes := bytes.Repeat([]byte{byte(padding)}, padding)
 	data = append(data, padbytes...)
 
@@ -62,12 +75,11 @@ func (ae *aesEncryptor) ForwardTransform(data []byte) ([]byte, error) {
 	mode := cipher.NewCBCEncrypter(block, ae.iv)
 	mode.CryptBlocks(encrypted, data)
 
-
 	return encrypted, nil
 }
 
-// The key should be 48 bytes.
-// First 32 bytes in key are actual key, the last 16 bytes are initialization vector
+// ReverseTransform returns byte sequence decoded with AES algorithm using
+// key and initialization vector acquired during AES transformer creation
 func (ae *aesEncryptor) ReverseTransform(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(ae.key)
 
@@ -79,8 +91,8 @@ func (ae *aesEncryptor) ReverseTransform(data []byte) ([]byte, error) {
 	mode := cipher.NewCBCDecrypter(block, ae.iv)
 	mode.CryptBlocks(decrypted, data)
 	// unpadding
-	unpadding := int(decrypted[len(decrypted) - 1])
-	decrypted = decrypted[:len(decrypted) - unpadding]
+	unpadding := int(decrypted[len(decrypted)-1])
+	decrypted = decrypted[:len(decrypted)-unpadding]
 
 	return decrypted, nil
 }
