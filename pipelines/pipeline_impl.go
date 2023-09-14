@@ -5,21 +5,24 @@ import (
 
 	"github.com/takahawk/shadownet/common"
 	"github.com/takahawk/shadownet/downloaders"
+	"github.com/takahawk/shadownet/logger"
 	"github.com/takahawk/shadownet/transformers"
 	"github.com/takahawk/shadownet/uploaders"
 	"github.com/takahawk/shadownet/url"
 )
 
 type uploadPipeline struct {
+	logger     logger.Logger
 	finalized  bool
 	urlHandler url.UrlHandler
 	steps      []common.Component
 }
 
 // NewUploadPipeline returns new empty upload pipeline
-func NewUploadPipeline() UploadPipeline {
+func NewUploadPipeline(logger logger.Logger) UploadPipeline {
 	return &uploadPipeline{
-		urlHandler: url.NewUrlHandler(),
+		logger:     logger,
+		urlHandler: url.NewUrlHandler(logger),
 	}
 }
 
@@ -69,19 +72,22 @@ func (up *uploadPipeline) Upload(data []byte) (url string, err error) {
 }
 
 type downloadPipeline struct {
-	steps []common.Component
+	logger logger.Logger
+	steps  []common.Component
 }
 
 // NewDownloadPipeline returns new empty download pipeline
-func NewDownloadPipeline() DownloadPipeline {
-	return &downloadPipeline{}
+func NewDownloadPipeline(logger logger.Logger) DownloadPipeline {
+	return &downloadPipeline{
+		logger: logger,
+	}
 }
 
 // NewDownloadPipeline constructs from ShadowNet URL new download pipeline
 // that can be used to download and decode data from it
-func NewDownloadPipelineByURL(shadowUrl string) (DownloadPipeline, error) {
-	urlHandler := url.NewUrlHandler()
-	pipeline := NewDownloadPipeline()
+func NewDownloadPipelineByURL(logger logger.Logger, shadowUrl string) (DownloadPipeline, error) {
+	urlHandler := url.NewUrlHandler(logger)
+	pipeline := NewDownloadPipeline(logger)
 	components, err := urlHandler.GetDownloadComponents(shadowUrl)
 	if err != nil {
 		return nil, err

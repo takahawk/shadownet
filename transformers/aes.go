@@ -6,11 +6,14 @@ import (
 
 	"crypto/aes"
 	"crypto/cipher"
+
+	"github.com/takahawk/shadownet/logger"
 )
 
 type aesEncryptor struct {
-	key []byte
-	iv  []byte
+	logger logger.Logger
+	key    []byte
+	iv     []byte
 }
 
 // AESEncryptorName is component name for AES encryptor
@@ -21,7 +24,7 @@ const AESEncryptorName = "aes"
 // Key and initialization vector must be provided.
 // Key should be 32 bytes long.
 // And initialization vector should be 16 bytes long.
-func NewAESEncryptor(key []byte, iv []byte) (Transformer, error) {
+func NewAESEncryptor(logger logger.Logger, key []byte, iv []byte) (Transformer, error) {
 	if len(key) != 32 {
 		return nil, errors.New("key length should be 32 bytes")
 	}
@@ -37,14 +40,14 @@ func NewAESEncryptor(key []byte, iv []byte) (Transformer, error) {
 // NewAESEncryptorWithParams is convenience function that call NewAESEncryptor
 // with parameters (that is, first is the key and second is initialization
 // vector) packed into slice.
-func NewAESEncryptorWithParams(params ...[]byte) (Transformer, error) {
+func NewAESEncryptorWithParams(logger logger.Logger, params ...[]byte) (Transformer, error) {
 	if len(params) != 2 {
 		return nil, errors.New("there should be 2 parameters: key and iv")
 	}
 	key := params[0]
 	iv := params[1]
 
-	return NewAESEncryptor(key, iv)
+	return NewAESEncryptor(logger, key, iv)
 }
 
 // Name returns component name of AES encryptor. It is always AESEncryptorName

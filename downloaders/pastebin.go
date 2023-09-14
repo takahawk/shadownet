@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/takahawk/shadownet/logger"
 )
 
 // PastebinRawPrefix is prefix for URL used to get saved paste in raw
@@ -16,6 +18,7 @@ const PastebinPostUrl = "https://pastebin.com/api/api_post.php"
 
 // TODO: make generic Web downloader instead
 type pastebinDownloader struct {
+	logger  logger.Logger
 	pasteID string
 }
 
@@ -25,8 +28,9 @@ const PastebinDownloaderName = "pastebin"
 // NewPastebinDownloader returns downloader for a given paste ID. Paste ID is
 // the last part in the URL used to identify paste (e.g. y1FKvrXe in
 // https://pastebin.com/raw/y1FKvrXe)
-func NewPastebinDownloader(pasteID string) Downloader {
+func NewPastebinDownloader(logger logger.Logger, pasteID string) Downloader {
 	return &pastebinDownloader{
+		logger:  logger,
 		pasteID: pasteID,
 	}
 }
@@ -34,11 +38,11 @@ func NewPastebinDownloader(pasteID string) Downloader {
 // NewPastebinDownloaderWithParams returns downloader for a given params. It
 // does expect single param that is paste ID. It exists only for convenience
 // doing effectively the same as NewPastebinDownloader
-func NewPastebinDownloaderWithParams(params ...[]byte) (Downloader, error) {
+func NewPastebinDownloaderWithParams(logger logger.Logger, params ...[]byte) (Downloader, error) {
 	if len(params) != 1 {
 		return nil, errors.New("there should be only 1 param: paste ID")
 	}
-	return NewPastebinDownloader(string(params[0])), nil
+	return NewPastebinDownloader(logger, string(params[0])), nil
 }
 
 // Name returns pastebin downloader name. It is always PastebinDownloaderName

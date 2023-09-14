@@ -1,33 +1,35 @@
 package url
 
 import (
-	"fmt"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/takahawk/shadownet/common"
+	"github.com/takahawk/shadownet/logger"
 	"github.com/takahawk/shadownet/resolvers"
 	"github.com/takahawk/shadownet/transformers"
 	"github.com/takahawk/shadownet/uploaders"
 )
 
 type urlHandler struct {
+	logger   logger.Logger
 	resolver resolvers.Resolver
 }
 
 var urlPartPattern = regexp.MustCompile(`(trans|down)_(.+):(.*)`)
 
-func NewUrlHandler() UrlHandler {
-	resolver := resolvers.NewBuiltinResolver()
+func NewUrlHandler(logger logger.Logger) UrlHandler {
+	resolver := resolvers.NewBuiltinResolver(logger)
 	return &urlHandler{
+		logger:   logger,
 		resolver: resolver,
 	}
 }
 
-
-func (uh *urlHandler) MakeURL(id string, components... common.Component) (string, error) {
+func (uh *urlHandler) MakeURL(id string, components ...common.Component) (string, error) {
 	var urlParts []string
 
 	for _, component := range components {
@@ -37,7 +39,7 @@ func (uh *urlHandler) MakeURL(id string, components... common.Component) (string
 		case uploaders.Uploader:
 			// mb double-check for uploader to be only the last component?
 			urlParts = append(urlParts, getURLPart(component, []byte(id)))
-		}		
+		}
 	}
 
 	var sb strings.Builder
@@ -46,7 +48,7 @@ func (uh *urlHandler) MakeURL(id string, components... common.Component) (string
 		sb.WriteString(".")
 	}
 	sb.WriteString(urlParts[0])
-	return sb.String(), nil 
+	return sb.String(), nil
 }
 
 func (uh *urlHandler) GetDownloadComponents(url string) ([]common.Component, error) {
@@ -95,7 +97,7 @@ func (uh *urlHandler) GetDownloadComponents(url string) ([]common.Component, err
 }
 
 // [Type]_[ID]:[Base64dCommaSeparatedParameters]
-func getURLPart(component common.Component, params... []byte) string {
+func getURLPart(component common.Component, params ...[]byte) string {
 	var sb strings.Builder
 
 	switch component.(type) {
@@ -109,7 +111,7 @@ func getURLPart(component common.Component, params... []byte) string {
 	sb.WriteString(":")
 	for i, param := range params {
 		sb.WriteString(base64.StdEncoding.EncodeToString(param))
-		if i != len(params) - 1 {
+		if i != len(params)-1 {
 			sb.WriteString(",")
 		}
 	}

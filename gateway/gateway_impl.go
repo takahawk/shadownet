@@ -56,7 +56,7 @@ func (sg *shadowGateway) Start(port int) error {
 func (sg *shadowGateway) handleGatewayRequest(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	shadowUrl := vars["shadowUrl"]
-	pipeline, err := pipelines.NewDownloadPipelineByURL(shadowUrl)
+	pipeline, err := pipelines.NewDownloadPipelineByURL(sg.logger, shadowUrl)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		sg.logger.Errorf("%+v", err)
@@ -241,9 +241,9 @@ func (sg *shadowGateway) parsePipeline(pipelineJson string) (pipelines.UploadPip
 		}
 	}
 
-	pipeline := pipelines.NewUploadPipeline()
+	pipeline := pipelines.NewUploadPipeline(sg.logger)
 
-	resolver := resolvers.NewBuiltinResolver()
+	resolver := resolvers.NewBuiltinResolver(sg.logger)
 
 	for i := 0; i < len(request.Components)-1; i++ {
 		transformer, err := resolver.ResolveTransformer(request.Components[i].Name, byteParams[i]...)

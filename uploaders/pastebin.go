@@ -10,6 +10,8 @@ import (
 
 	"regexp"
 	"strings"
+
+	"github.com/takahawk/shadownet/logger"
 )
 
 // PastebinUploaderName is pastebin uploader component name
@@ -41,12 +43,13 @@ const (
 var successfulResponsePattern = regexp.MustCompile(`https://pastebin.com/(.+)$`)
 
 type pastebinUploader struct {
+	logger logger.Logger
 	apiKey string
 }
 
 // NewPastebinUploader returns uploader that uploads data to Pastebin for a
 // given API key that will be used to make upload requests
-func NewPastebinUploader(apiKey string) Uploader {
+func NewPastebinUploader(logger logger.Logger, apiKey string) Uploader {
 	return &pastebinUploader{
 		apiKey: apiKey,
 	}
@@ -55,13 +58,16 @@ func NewPastebinUploader(apiKey string) Uploader {
 // NewPastebinUploaderWithParams returns uploader for a given params. It
 // does expect single param that is API key. It exists only for convenience
 // doing effectively the same as NewPastebinUploader
-func NewPastebinUploaderWithParams(params ...[]byte) (Uploader, error) {
+func NewPastebinUploaderWithParams(logger logger.Logger, params ...[]byte) (Uploader, error) {
 	if len(params) != 1 {
 		return nil, errors.New("there should be 1 parameters: pastebin developer key")
 	}
 	apiKey := string(params[0])
 
-	return &pastebinUploader{apiKey}, nil
+	return &pastebinUploader{
+		logger: logger,
+		apiKey: apiKey,
+	}, nil
 }
 
 // Name returns pastebin uploader name. It is always PastebinUploaderName

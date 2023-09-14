@@ -65,7 +65,7 @@ type dropboxCreateSharedLinkResponseBody struct {
 	Url string `json:"url"`
 }
 
-func NewDropboxUploader(accessToken string, logger logger.Logger) Uploader {
+func NewDropboxUploader(logger logger.Logger, accessToken string) Uploader {
 	return &dropboxUploader{
 		accessToken: accessToken,
 		logger:      logger,
@@ -73,11 +73,11 @@ func NewDropboxUploader(accessToken string, logger logger.Logger) Uploader {
 }
 
 // TODO: do smthng with logger!
-func NewDropboxUploaderWithParams(params ...[]byte) (Uploader, error) {
+func NewDropboxUploaderWithParams(logger logger.Logger, params ...[]byte) (Uploader, error) {
 	if len(params) != 1 {
 		return nil, errors.New("there should be exactly 1 parameter: Dropbox access token")
 	}
-	return NewDropboxUploader(string(params[0]), nil), nil
+	return NewDropboxUploader(logger, string(params[0])), nil
 }
 
 func (du *dropboxUploader) Name() string {

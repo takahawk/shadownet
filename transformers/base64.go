@@ -2,17 +2,34 @@ package transformers
 
 import (
 	"encoding/base64"
-)
+	"errors"
 
-type base64Transformer struct{}
+	"github.com/takahawk/shadownet/logger"
+)
 
 // Base64TransformerName is component name of base64 transformer
 const Base64TransformerName = "base64"
 
+type base64Transformer struct {
+	logger logger.Logger
+}
+
 // NewBase64Transformer returns transformer that provides encoding/decoding
 // data to/from Base64
-func NewBase64Transformer() Transformer {
-	return &base64Transformer{}
+func NewBase64Transformer(logger logger.Logger) Transformer {
+	return &base64Transformer{
+		logger: logger,
+	}
+}
+
+// NewBase64Transformer is convinience function to call base64 constructor
+// with signature that contains params
+func NewBase64TransformerWithParams(logger logger.Logger, params ...[]byte) (Transformer, error) {
+	if len(params) != 0 {
+		return nil, errors.New("base64 transformer doesn't accept any params")
+	}
+
+	return NewBase64Transformer(logger), nil
 }
 
 // Name returns component name of base64 transformer.
