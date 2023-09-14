@@ -14,12 +14,27 @@ import (
 )
 
 const DropboxUploaderName = "dropbox"
+
 const DropboxApiUrlUpload = "https://content.dropboxapi.com/2/files/upload"
+const DropboxApiUrlCreateSharedLink = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
 
 const (
 	DropboxUploadArgModeAdd       = "add"
 	DropboxUploadArgModeOverwrite = "overwrite"
 	DropboxUploadArgModeUpdate    = "update"
+)
+
+const (
+	DropboxCreateSharedLinkAccessViewer  = "viewer"
+	DropboxCreateSharedLinkAccessEditor  = "editor"
+	DropboxCreateSharedLinkAccessMax     = "max"
+	DropboxCreateSharedLinkAccessDefault = "default"
+)
+
+const (
+	DropboxCreateSharedLinkAudiencePublic = "public"
+	DropboxCreateSharedLinkAudienceTeam   = "team"
+	DropboxCreateSharedLinkAudienceNoOne  = "no_one"
 )
 
 const RandomFilenameBytes = 16
@@ -35,6 +50,19 @@ type dropboxUploadApiArg struct {
 	Mute           bool   `json:"mute"`
 	Path           string `json:"path"`
 	StrictConflict bool   `json:"strict_conflict"`
+}
+
+type dropboxCreateSharedLinkRequestBody struct {
+	Path     string `json:"path"`
+	Settings struct {
+		Access        string `json:"access"`
+		AllowDownload bool   `json:"allow_download"`
+		Audience      string `json:"audience"`
+	} `json:"settings"`
+}
+
+type dropboxCreateSharedLinkResponseBody struct {
+	Url string `json:"url"`
 }
 
 func NewDropboxUploader(accessToken string, logger logger.Logger) Uploader {
@@ -94,6 +122,61 @@ func (du *dropboxUploader) Upload(data []byte) (id string, err error) {
 		return "", errors.New("request failed")
 	}
 	du.logger.Infof("Success uploading data to Dropbox. ID: %s", id)
+
+	// TODO: refactor, move all common dropbox HTTP request logic to separate function
+	body := dropboxCreateSharedLinkRequestBody{
+		Path: fmt.Sprintf("/%s", id),
+		Settings: struct {
+			Access        string `json:"access"`
+			AllowDownload bool   `json:"allow_download"`
+			Audience      string `json:"audience"`
+		}{
+			Access:        DropboxCreateSharedLinkAccessMax,
+			AllowDownload: true,
+			Audience:      DropboxCreateSharedLinkAudiencePublic,
+		},
+	}
+	bodyJson, err := json.Marshal(body)
+	du.logger.Infof("Creating shared link...")
+	r, err = http.NewRequest(http.MethodPost, DropboxApiUrlCreateSharedLink, bytes.NewReader(bodyJson))
+	if err != nil {
+		du.logger.Errorf("%+v", err)
+		return "", err
+	}
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", du.accessToken))
+	r.Header.Set("Content-Type", "application/json")
+
+	rsp, err = client.Do(r)
+	if err != nil {
+		du.logger.Errorf("%+v", err)
+		return "", err
+	}
+	if rsp.StatusCode != http.StatusOK {
+		du.logger.Errorf("Request failed with status code: %d", rsp.StatusCode)
+		body, err := io.ReadAll(rsp.Body)
+		if err != nil {
+			du.logger.Error("Error reading response body")
+			return "", errors.New("request failed")
+		}
+		du.logger.Errorf(string(body))
+		return "", errors.New("request failed")
+	}
+
+	rspBodyJson, err := io.ReadAll(rsp.Body)
+	if err != nil {
+		du.logger.Error("Error reading response body")
+		return "", errors.New("request failed")
+	}
+	var rspBody dropboxCreateSharedLinkResponseBody
+	err = json.Unmarshal(rspBodyJson, &rspBody)
+	if err != nil {
+		du.logger.Errorf("Error unmarshalling response body: %s", string(rspBodyJson))
+		return "", errors.New("request failed")
+	}
+
+	// substitute dl=0 to dl=1 to get direct download link
+	id = rspBody.Url[:len(rspBody.Url)-1] + "1"
+	du.logger.Infof("Success creating shared link. Web URL: %s", id)
 
 	return
 }
