@@ -7,6 +7,7 @@ import (
 	"github.com/takahawk/shadownet/logger"
 )
 
+// DbDriverNameSqlite3 is name of SQLite3 driver
 const DbDriverNameSqlite3 = "sqlite3"
 
 var migrations = []string{
@@ -21,6 +22,9 @@ type sqliteStorage struct {
 	logger logger.Logger
 }
 
+// NewSqliteStorage returns new storage backed by SQLite database.
+// It runs migrations after database connection, so that errors returned can
+// be related to both DB connection and running migrations
 func NewSqliteStorage(filename string, logger logger.Logger) (Storage, error) {
 	db, err := sql.Open(DbDriverNameSqlite3, filename)
 
@@ -42,6 +46,7 @@ func NewSqliteStorage(filename string, logger logger.Logger) (Storage, error) {
 	return storage, nil
 }
 
+// ListPipelineJSONs returns all pipeline JSONs stored in SQLite database
 func (ss *sqliteStorage) ListPipelineJSONs() ([]PipelineJSONsListEntry, error) {
 	result := make([]PipelineJSONsListEntry, 0)
 	rows, err := ss.db.Query("SELECT name, json FROM pipelines")
@@ -63,6 +68,7 @@ func (ss *sqliteStorage) ListPipelineJSONs() ([]PipelineJSONsListEntry, error) {
 	return result, nil
 }
 
+// SavePipelineJSON saves pipeline JSON in SQL database
 func (ss *sqliteStorage) SavePipelineJSON(name string, json string) error {
 	_, err := ss.db.Exec("INSERT INTO pipelines (name, json) VALUES (?, ?)", name, json)
 	if err != nil {
@@ -73,6 +79,7 @@ func (ss *sqliteStorage) SavePipelineJSON(name string, json string) error {
 	return nil
 }
 
+// LoadPipelineJSON makes query to SQLite to get pipeline JSON
 func (ss *sqliteStorage) LoadPipelineJSON(name string) (json string, err error) {
 	row := ss.db.QueryRow("SELECT json FROM pipelines WHERE name = ?", name)
 	var pipelineJson string
@@ -84,7 +91,10 @@ func (ss *sqliteStorage) LoadPipelineJSON(name string) (json string, err error) 
 	return pipelineJson, nil
 }
 
+// UpdatePipelineJSON makes query to SQLite to overwrite pipeline JSON with a
+// given name
 func (ss *sqliteStorage) UpdatePipelineJSON(name string, json string) error {
+	// TODO: return error if pipeline is not exists
 	_, err := ss.db.Exec("UPDATE pipelines SET json = ? WHERE name = ?", json, name)
 	if err != nil {
 		ss.logger.Errorf("Error updating pipeline: %+v", err)
@@ -94,6 +104,8 @@ func (ss *sqliteStorage) UpdatePipelineJSON(name string, json string) error {
 	return nil
 }
 
+// DeletePipelineJSON makes query to remove pipeline JSON with a given name
+// from database
 func (ss *sqliteStorage) DeletePipelineJSON(name string) error {
 	_, err := ss.db.Exec("DELETE FROM pipelines WHERE name = ?", name)
 	if err != nil {
