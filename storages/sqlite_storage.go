@@ -2,9 +2,12 @@ package storages
 
 import (
 	"database/sql"
+	"encoding/json"
+	"errors"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/takahawk/shadownet/logger"
+	"github.com/takahawk/shadownet/models"
 )
 
 // DbDriverNameSqlite3 is name of SQLite3 driver
@@ -46,9 +49,9 @@ func NewSqliteStorage(filename string, logger logger.Logger) (Storage, error) {
 	return storage, nil
 }
 
-// ListPipelineJSONs returns all pipeline JSONs stored in SQLite database
-func (ss *sqliteStorage) ListPipelineJSONs() ([]PipelineJSONsListEntry, error) {
-	result := make([]PipelineJSONsListEntry, 0)
+// ListPipelineSpecs returns all pipeline specifications stored in SQLite database
+func (ss *sqliteStorage) ListPipelineSpecs() ([]*models.PipelineSpec, error) {
+	result := make([]*models.PipelineSpec, 0)
 	rows, err := ss.db.Query("SELECT name, json FROM pipelines")
 	if err != nil {
 		ss.logger.Errorf("Error getting pipeline: %+v", err)
@@ -56,21 +59,38 @@ func (ss *sqliteStorage) ListPipelineJSONs() ([]PipelineJSONsListEntry, error) {
 	}
 
 	for rows.Next() {
-		var entry PipelineJSONsListEntry
-		err = rows.Scan(&entry.Name, &entry.JSON)
+		var name, pipelineJson string
+		err = rows.Scan(&name, &pipelineJson)
 		if err != nil {
 			ss.logger.Errorf("Error getting pipeline: %+v", err)
 			return nil, err
 		}
-		result = append(result, entry)
+
+		var spec models.PipelineSpec
+		err = json.Unmarshal([]byte(pipelineJson), &spec)
+		if err != nil {
+			ss.logger.Errorf("Error unmarshaling pipeline JSON: %+v", err)
+			return nil, err
+		}
+		result = append(result, &spec)
 	}
 
 	return result, nil
 }
 
-// SavePipelineJSON saves pipeline JSON in SQL database
-func (ss *sqliteStorage) SavePipelineJSON(name string, json string) error {
-	_, err := ss.db.Exec("INSERT INTO pipelines (name, json) VALUES (?, ?)", name, json)
+// SavePipelineSpec saves pipeline specifications in SQL database
+func (ss *sqliteStorage) SavePipelineSpec(spec *models.PipelineSpec) error {
+	pipelineJSON, err := json.Marshal(spec)
+	if err != nil {
+		ss.logger.Errorf("Error marshaling pipeline to JSON: %+v", err)
+		// mb more verbose logging?
+		return err
+	}
+	if spec.Name == "" {
+		ss.logger.Error("Empty name of pipeline specification")
+		return errors.New("empty name of pipeline specificafion")
+	}
+	_, err = ss.db.Exec("INSERT INTO pipelines (name, json) VALUES (?, ?)", spec.Name, pipelineJSON)
 	if err != nil {
 		ss.logger.Errorf("Error saving pipeline: %+v", err)
 		// mb more verbose logging?
@@ -79,23 +99,36 @@ func (ss *sqliteStorage) SavePipelineJSON(name string, json string) error {
 	return nil
 }
 
-// LoadPipelineJSON makes query to SQLite to get pipeline JSON
-func (ss *sqliteStorage) LoadPipelineJSON(name string) (json string, err error) {
+// LoadPipelineSpec makes query to SQLite to get pipeline specification
+func (ss *sqliteStorage) LoadPipelineSpec(name string) (*models.PipelineSpec, error) {
 	row := ss.db.QueryRow("SELECT json FROM pipelines WHERE name = ?", name)
 	var pipelineJson string
-	err = row.Scan(&pipelineJson)
+	err := row.Scan(&pipelineJson)
 	if err != nil {
 		ss.logger.Errorf("Error getting pipeline: %+v", err)
-		return "", err
+		return nil, err
 	}
-	return pipelineJson, nil
+
+	var pipelineSpec models.PipelineSpec
+	err = json.Unmarshal([]byte(pipelineJson), &pipelineSpec)
+	if err != nil {
+		ss.logger.Errorf("Error unmarshaling pipeline from JSON: %+v", err)
+		return nil, err
+	}
+	return &pipelineSpec, nil
 }
 
-// UpdatePipelineJSON makes query to SQLite to overwrite pipeline JSON with a
-// given name
-func (ss *sqliteStorage) UpdatePipelineJSON(name string, json string) error {
+// UpdatePipelineSpec makes query to SQLite to overwrite pipeline
+// specification with a given name
+func (ss *sqliteStorage) UpdatePipelineSpec(spec *models.PipelineSpec) error {
+	pipelineJSON, err := json.Marshal(spec)
+	if err != nil {
+		ss.logger.Errorf("Error marshaling pipeline to JSON: %+v", err)
+		// mb more verbose logging?
+		return err
+	}
 	// TODO: return error if pipeline is not exists
-	_, err := ss.db.Exec("UPDATE pipelines SET json = ? WHERE name = ?", json, name)
+	_, err = ss.db.Exec("UPDATE pipelines SET json = ? WHERE name = ?", spec.Name, pipelineJSON)
 	if err != nil {
 		ss.logger.Errorf("Error updating pipeline: %+v", err)
 		// mb more verbose logging?
@@ -104,9 +137,9 @@ func (ss *sqliteStorage) UpdatePipelineJSON(name string, json string) error {
 	return nil
 }
 
-// DeletePipelineJSON makes query to remove pipeline JSON with a given name
-// from database
-func (ss *sqliteStorage) DeletePipelineJSON(name string) error {
+// DeletePipelineJSON makes query to remove pipeline specification with a given
+// name from database
+func (ss *sqliteStorage) DeletePipelineSpec(name string) error {
 	_, err := ss.db.Exec("DELETE FROM pipelines WHERE name = ?", name)
 	if err != nil {
 		ss.logger.Errorf("Error deleting pipeline: %+v", err)

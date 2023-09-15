@@ -3,12 +3,14 @@ package gateway
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/takahawk/shadownet/logger"
+	"github.com/takahawk/shadownet/models"
 	"github.com/takahawk/shadownet/pipelines"
 	"github.com/takahawk/shadownet/resolvers"
 	"github.com/takahawk/shadownet/storages"
@@ -18,14 +20,6 @@ type shadowGateway struct {
 	logger  logger.Logger
 	storage storages.Storage
 	// TODO: cache pipelines?
-}
-
-type pipelineSpec struct {
-	Components []struct {
-		Name            string
-		Params          []string
-		IsParamsBase64d bool
-	}
 }
 
 func NewShadowGateway(logger logger.Logger, storage storages.Storage) ShadownetGateway {
@@ -40,8 +34,8 @@ func (sg *shadowGateway) Start(port int) error {
 	r := mux.NewRouter()
 	r.HandleFunc("/pipelines", sg.handleListPipelinesRequest).Methods(http.MethodGet)
 	r.HandleFunc("/{shadowUrl}", sg.handleGatewayRequest).Methods(http.MethodGet)
-	r.HandleFunc("/pipelines/{pipelineName}", sg.handleAddPipelineRequest).Methods(http.MethodPost)
-	r.HandleFunc("/pipelines/{pipelineName}", sg.handleUpdatePipelineRequest).Methods(http.MethodPut)
+	r.HandleFunc("/pipelines", sg.handleAddPipelineRequest).Methods(http.MethodPost)
+	r.HandleFunc("/pipelines", sg.handleUpdatePipelineRequest).Methods(http.MethodPut)
 	r.HandleFunc("/pipelines/{pipelineName}", sg.handleDeletePipelineRequest).Methods(http.MethodDelete)
 
 	r.HandleFunc("/pipelines/{pipelineName}/upload", sg.handleUploadFileRequest).Methods(http.MethodPost)
@@ -75,29 +69,26 @@ func (sg *shadowGateway) handleGatewayRequest(w http.ResponseWriter, req *http.R
 }
 
 func (sg *shadowGateway) handleListPipelinesRequest(w http.ResponseWriter, req *http.Request) {
-	pipelineJsons, err := sg.storage.ListPipelineJSONs()
-	sg.logger.Error("1")
+	enableCors(w)
+	pipelineSpecs, err := sg.storage.ListPipelineSpecs()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		sg.logger.Errorf("%+v", err)
 		return
 	}
 
-	data, err := json.Marshal(pipelineJsons)
-	sg.logger.Error("2")
+	data, err := json.Marshal(pipelineSpecs)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		sg.logger.Errorf("%+v", err)
 		return
 	}
 
-	sg.logger.Error("3")
 	fmt.Fprintf(w, string(data))
 }
 
 func (sg *shadowGateway) handleAddPipelineRequest(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	pipelineName := vars["pipelineName"]
+	enableCors(w)
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
@@ -106,24 +97,32 @@ func (sg *shadowGateway) handleAddPipelineRequest(w http.ResponseWriter, req *ht
 		return
 	}
 	pipelineJson := string(b)
-	_, err = sg.parsePipeline(pipelineJson)
+	var pipelineSpec models.PipelineSpec
+	err = json.Unmarshal([]byte(pipelineJson), &pipelineSpec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sg.logger.Errorf("Error unmarshaling pipeline spec: %+v", err)
 		return
 	}
-	err = sg.storage.SavePipelineJSON(pipelineName, pipelineJson)
+	_, err = sg.parsePipeline(&pipelineSpec)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sg.logger.Errorf("Error parsing pipeline: %+v", err)
+		return
+	}
+
+	err = sg.storage.SavePipelineSpec(&pipelineSpec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	sg.logger.Infof("Pipeline with name \"%s\" successfully added\n", pipelineName)
-	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully added\n", pipelineName)
+	sg.logger.Infof("Pipeline with name \"%s\" successfully added\n", pipelineSpec.Name)
+	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully added\n", pipelineSpec.Name)
 }
 
 func (sg *shadowGateway) handleUpdatePipelineRequest(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	pipelineName := vars["pipelineName"]
+	enableCors(w)
 
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -133,26 +132,34 @@ func (sg *shadowGateway) handleUpdatePipelineRequest(w http.ResponseWriter, req 
 		return
 	}
 	pipelineJson := string(b)
-	_, err = sg.parsePipeline(pipelineJson)
+	var pipelineSpec models.PipelineSpec
+	err = json.Unmarshal([]byte(pipelineJson), &pipelineSpec)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sg.logger.Errorf("Error unmarshaling pipeline spec: %+v", err)
+		return
+	}
+	_, err = sg.parsePipeline(&pipelineSpec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = sg.storage.UpdatePipelineJSON(pipelineName, pipelineJson)
+	err = sg.storage.UpdatePipelineSpec(&pipelineSpec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	sg.logger.Infof("Pipeline with name \"%s\" successfully updated\n", pipelineName)
-	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully updated\n", pipelineName)
+	sg.logger.Infof("Pipeline with name \"%s\" successfully updated\n", pipelineSpec.Name)
+	fmt.Fprintf(w, "Pipeline with name \"%s\" successfully updated\n", pipelineSpec.Name)
 }
 
 func (sg *shadowGateway) handleDeletePipelineRequest(w http.ResponseWriter, req *http.Request) {
+	enableCors(w)
 	vars := mux.Vars(req)
 	pipelineName := vars["pipelineName"]
 
-	err := sg.storage.DeletePipelineJSON(pipelineName)
+	err := sg.storage.DeletePipelineSpec(pipelineName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -165,7 +172,7 @@ func (sg *shadowGateway) handleDeletePipelineRequest(w http.ResponseWriter, req 
 func (sg *shadowGateway) handleUploadFileRequest(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	pipelineName := vars["pipelineName"]
-	pipelineJson, err := sg.storage.LoadPipelineJSON(pipelineName)
+	pipelineSpec, err := sg.storage.LoadPipelineSpec(pipelineName)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -188,7 +195,7 @@ func (sg *shadowGateway) handleUploadFileRequest(w http.ResponseWriter, req *htt
 		return
 	}
 
-	pipeline, err := sg.parsePipeline(pipelineJson)
+	pipeline, err := sg.parsePipeline(pipelineSpec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -212,20 +219,14 @@ func (sg *shadowGateway) handleUploadFileRequest(w http.ResponseWriter, req *htt
 	w.Write(responseJson)
 }
 
-func (sg *shadowGateway) parsePipeline(pipelineJson string) (pipelines.UploadPipeline, error) {
-	var request pipelineSpec
-	err := json.Unmarshal([]byte(pipelineJson), &request)
-	if err != nil {
-		sg.logger.Errorf("%+v", err)
-		return nil, err
-	}
-	if len(request.Components) == 0 {
+func (sg *shadowGateway) parsePipeline(pipelineSpec *models.PipelineSpec) (pipelines.UploadPipeline, error) {
+	if len(pipelineSpec.Components) == 0 {
 		sg.logger.Error("Setup pipeline request with empty pipeline")
-		return nil, err
+		return nil, errors.New("setup pipeline request with empty pipeline")
 	}
 
 	var byteParams [][][]byte
-	for j, component := range request.Components {
+	for j, component := range pipelineSpec.Components {
 		byteParams = append(byteParams, nil)
 		for _, param := range component.Params {
 			if component.IsParamsBase64d {
@@ -245,8 +246,8 @@ func (sg *shadowGateway) parsePipeline(pipelineJson string) (pipelines.UploadPip
 
 	resolver := resolvers.NewBuiltinResolver(sg.logger)
 
-	for i := 0; i < len(request.Components)-1; i++ {
-		transformer, err := resolver.ResolveTransformer(request.Components[i].Name, byteParams[i]...)
+	for i := 0; i < len(pipelineSpec.Components)-1; i++ {
+		transformer, err := resolver.ResolveTransformer(pipelineSpec.Components[i].Name, byteParams[i]...)
 		if err != nil {
 			sg.logger.Errorf("%+v", err)
 			return nil, err
@@ -259,9 +260,9 @@ func (sg *shadowGateway) parsePipeline(pipelineJson string) (pipelines.UploadPip
 	}
 
 	// TODO: mb double-check for uploader and send human-friendly error
-	uploaderSpec := request.Components[len(request.Components)-1]
+	uploaderSpec := pipelineSpec.Components[len(pipelineSpec.Components)-1]
 
-	uploader, err := resolver.ResolveUploader(uploaderSpec.Name, byteParams[len(request.Components)-1]...)
+	uploader, err := resolver.ResolveUploader(uploaderSpec.Name, byteParams[len(pipelineSpec.Components)-1]...)
 	if err != nil {
 		sg.logger.Errorf("%+v", err)
 		return nil, err
@@ -274,4 +275,8 @@ func (sg *shadowGateway) parsePipeline(pipelineJson string) (pipelines.UploadPip
 	}
 
 	return pipeline, nil
+}
+
+func enableCors(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 }

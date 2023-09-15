@@ -1,10 +1,6 @@
 package storages
 
-// PipelineJSONsListEntry combines pipeline JSON with its name
-type PipelineJSONsListEntry struct {
-	Name string
-	JSON string
-}
+import "github.com/takahawk/shadownet/models"
 
 // Storage
 type Storage interface {
@@ -13,15 +9,16 @@ type Storage interface {
 
 // PipelineStorage is used to persistently store pipelines in JSON form
 type PipelineStorage interface {
-	// ListPipelineJSONs returns slice of all pipeline JSONs (with names)
+	// ListPipelineSpecs returns slice of all pipeline specifications
 	// that are exist in storage
-	ListPipelineJSONs() ([]PipelineJSONsListEntry, error)
-	// SavePipelineJSON stores pipeline JSON with a given name
-	SavePipelineJSON(name string, json string) error
-	// UpdatePipelineJSON overwrites pipeline JSON with a given name
-	UpdatePipelineJSON(name string, json string) error
-	// LoadPipelineJSON returns pipeline JSON with a given name
-	LoadPipelineJSON(name string) (json string, err error)
-	// DeletePipelineJSON removes pipeline JSON with a given name from storage
-	DeletePipelineJSON(name string) error
+	ListPipelineSpecs() ([]*models.PipelineSpec, error)
+	// SavePipelineSpec stores pipeline specification
+	SavePipelineSpec(spec *models.PipelineSpec) error
+	// UpdatePipelineSpec overwrites pipeline specification with a given name
+	UpdatePipelineSpec(spec *models.PipelineSpec) error
+	// LoadPipelineSpec returns pipeline specification with a given name
+	LoadPipelineSpec(name string) (*models.PipelineSpec, error)
+	// DeletePipelineSpec removes pipeline specification with a given name from
+	// storage
+	DeletePipelineSpec(name string) error
 }
