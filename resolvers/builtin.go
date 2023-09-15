@@ -23,7 +23,7 @@ func NewBuiltinResolver(log logger.Logger) Resolver {
 	return &builtinResolver{
 		logger: log,
 		downloaderDict: map[string]func(logger logger.Logger, params ...[]byte) (downloaders.Downloader, error){
-			downloaders.PastebinDownloaderName: downloaders.NewPastebinDownloaderWithParams,
+			downloaders.WebDownloaderName: downloaders.NewWebDownloaderWithParams,
 		},
 
 		transformerDict: map[string]func(logger logger.Logger, params ...[]byte) (transformers.Transformer, error){

@@ -2,6 +2,7 @@ package uploaders
 
 import (
 	"errors"
+	"fmt"
 
 	"io/ioutil"
 
@@ -39,6 +40,10 @@ const (
 	// paste private (accessible only when logged in to corresponding account)
 	PastebinPrivacyPrivate = "2"
 )
+
+// PastebinRawPrefix is prefix for URL used to get saved paste in raw
+// (e.g. https://pastebin.com/raw/y1FKvrXe)
+const PastebinRawPrefix = "https://pastebin.com/raw"
 
 var successfulResponsePattern = regexp.MustCompile(`https://pastebin.com/(.+)$`)
 
@@ -126,5 +131,7 @@ func (pu *pastebinUploader) Upload(content []byte) (id string, err error) {
 		return "", errors.New("failed to capture id")
 	}
 
-	return groups[1], nil
+	id = fmt.Sprintf("%s/%s", PastebinRawPrefix, groups[1])
+
+	return id, nil
 }
