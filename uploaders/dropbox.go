@@ -13,30 +13,60 @@ import (
 	"github.com/takahawk/shadownet/logger"
 )
 
+// DropboxUploaderName is dropbox uploader component name
 const DropboxUploaderName = "dropbox"
 
+// DropboxApiUrlUpload is URL to send POST upload requests to dropbox
 const DropboxApiUrlUpload = "https://content.dropboxapi.com/2/files/upload"
+
+// DropboxApiUrlCreateSharedLink is URL to send POST request to create shared
+// link for already uploaded file
 const DropboxApiUrlCreateSharedLink = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
 
 const (
-	DropboxUploadArgModeAdd       = "add"
+	// DropboxUploadArgModeAdd is write mode that in case of conflict creates
+	// file with another name (i.e. "filename(2).txt")
+	DropboxUploadArgModeAdd = "add"
+	// DropboxUploadArgModeOverwrite is write mode that in case of conflict
+	// just overwrites
 	DropboxUploadArgModeOverwrite = "overwrite"
-	DropboxUploadArgModeUpdate    = "update"
+	// DropboxUploadArgModeUpdate is write mode that overwrites file, but
+	// only if it's "rev" matches the existing file's "rev" (see more in
+	// Dropbox HTTP API docs)
+	DropboxUploadArgModeUpdate = "update"
 )
 
 const (
-	DropboxCreateSharedLinkAccessViewer  = "viewer"
-	DropboxCreateSharedLinkAccessEditor  = "editor"
-	DropboxCreateSharedLinkAccessMax     = "max"
+	// DropboxCreateSharedLinkAccessViewer is access level that allows users
+	// who has link to view and comment on the content
+	DropboxCreateSharedLinkAccessViewer = "viewer"
+	// DropboxCreateSharedLinkAccessEditor is access level that allows users
+	// who has link to view, comment and also edit the content (not all files
+	// support edit links)
+	DropboxCreateSharedLinkAccessEditor = "editor"
+	// DropboxCreateSharedLinkAccessMax is  sets access level to maximum
+	// allowed level for this URL
+	DropboxCreateSharedLinkAccessMax = "max"
+	// DropboxCreateSharedLinkAccessDefault is set access level to the
+	// default user has set
 	DropboxCreateSharedLinkAccessDefault = "default"
 )
 
 const (
+	// DropboxCreateSharedLinkAudiencePublic makes link accessible to anyone
 	DropboxCreateSharedLinkAudiencePublic = "public"
-	DropboxCreateSharedLinkAudienceTeam   = "team"
-	DropboxCreateSharedLinkAudienceNoOne  = "no_one"
+	// DropboxCreateSharedLinkAudienceTeam makes link accessible only by team
+	// members
+	DropboxCreateSharedLinkAudienceTeam = "team"
+	// DropboxCreateSharedLinkAudienceNoOne make link to not grant any
+	// additional access rights. Link only points to content and can
+	// be only successfully used by user who already have some access
+	// to a file
+	DropboxCreateSharedLinkAudienceNoOne = "no_one"
 )
 
+// RandomFilenameBytes is number used to generate random name for a data to
+// be uploaded
 const RandomFilenameBytes = 16
 
 type dropboxUploader struct {
@@ -65,6 +95,8 @@ type dropboxCreateSharedLinkResponseBody struct {
 	Url string `json:"url"`
 }
 
+// NewDropboxUploader return new dropbox uploader that will be using given
+// access token
 func NewDropboxUploader(logger logger.Logger, accessToken string) Uploader {
 	return &dropboxUploader{
 		accessToken: accessToken,
@@ -72,6 +104,8 @@ func NewDropboxUploader(logger logger.Logger, accessToken string) Uploader {
 	}
 }
 
+// NewDropboxUploaderWithParams is convinience method that calls NewDropboxUploader
+// but with access token packed into byte slice
 func NewDropboxUploaderWithParams(logger logger.Logger, params ...[]byte) (Uploader, error) {
 	if len(params) != 1 {
 		return nil, errors.New("there should be exactly 1 parameter: Dropbox access token")
@@ -79,14 +113,17 @@ func NewDropboxUploaderWithParams(logger logger.Logger, params ...[]byte) (Uploa
 	return NewDropboxUploader(logger, string(params[0])), nil
 }
 
+// Name returns Dropbox uploader component name. It is always DropboxUploaderName
 func (du *dropboxUploader) Name() string {
 	return DropboxUploaderName
 }
 
+// Params returns access token packed into byte slice
 func (du *dropboxUploader) Params() [][]byte {
 	return [][]byte{[]byte(du.accessToken)}
 }
 
+// Upload uploads given file to dropbox and returns shared link to it
 func (du *dropboxUploader) Upload(data []byte) (id string, err error) {
 	du.logger.Info("Uploading data to Dropbox...")
 	client := &http.Client{}
@@ -138,7 +175,7 @@ func (du *dropboxUploader) Upload(data []byte) (id string, err error) {
 			AllowDownload bool   `json:"allow_download"`
 			Audience      string `json:"audience"`
 		}{
-			Access:        DropboxCreateSharedLinkAccessMax,
+			Access:        DropboxCreateSharedLinkAccessViewer,
 			AllowDownload: true,
 			Audience:      DropboxCreateSharedLinkAudiencePublic,
 		},
